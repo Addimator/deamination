@@ -46,8 +46,8 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
 
     // Initialize a HashMap to store the counts
     let mut position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
-    let mut bedGraphEntries: HashMap<(String, u32, u32, u16), (char, String)> = HashMap::new();
-
+    let mut bedGraphEntries: HashMap<(String, u32, u32, u16, i32), (char, String)> = HashMap::new();
+    let mut id = 0; // We need the ID because different aligned reads can look the same
     // Process the SAM and fill bedGraphEntries with the lines
     for line in sam_reader.lines() {
         let line = line.unwrap();
@@ -63,29 +63,36 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
         let position = fields[3].parse::<u32>().unwrap();
         let sequence = fields[9].to_string();
 
-        let reverse_read = read_reverse_strand(flag, true);
+        let reverse_read = read_reverse_strand(flag);
         let direction = if reverse_read { 'r' } else { 'f' };
         
-        bedGraphEntries.insert((chrom.clone(), position, position + sequence.len() as u32, flag), (direction, sequence));
-
+        bedGraphEntries.insert((chrom.clone(), position, position + sequence.len() as u32, flag, id), (direction, sequence));
+        id += 1;
     }
     // Go through all CpG positions and find the bases from the bedGraph entries
     for (chrom, vcf_pos) in vcf_positions.iter() {
-        for ((bed_chrom, start_pos, end_pos, _flag), (read_dir, sequence)) in &bedGraphEntries {
-            if chrom == bed_chrom && vcf_pos > start_pos && vcf_pos < &(end_pos - 1) {
-
-                let base_pos;
-                if *read_dir == 'f' {
+        for ((bed_chrom, start_pos, end_pos, _flag, _id), (read_dir, sequence)) in &bedGraphEntries {
+            let base_pos;
+            if *read_dir == 'f' {
+                if chrom == bed_chrom && vcf_pos >= start_pos && vcf_pos < end_pos {
                     base_pos = *vcf_pos;
-                }
-                else {
-                    base_pos = *vcf_pos + 1;      
-                }
-
-                let entry = position_counts
+                    
+                    let entry = position_counts
                     .entry((chrom.clone(), *vcf_pos, *read_dir))
                     .or_insert(HashMap::new());
-                *entry.entry(sequence.as_bytes()[(base_pos - start_pos) as usize] as char).or_insert(0) += 1;
+                    *entry.entry(sequence.as_bytes()[(base_pos - start_pos) as usize] as char).or_insert(0) += 1;
+                }
+            }
+            else {
+                if chrom == bed_chrom && (vcf_pos + 1) >= *start_pos && (vcf_pos + 1) < *end_pos {
+                    base_pos = *vcf_pos + 1;
+                    
+                    let entry = position_counts
+                    .entry((chrom.clone(), *vcf_pos, *read_dir))
+                    .or_insert(HashMap::new());
+                    *entry.entry(sequence.as_bytes()[(base_pos - start_pos) as usize] as char).or_insert(0) += 1;
+                }
+
             }
         }
     }
@@ -94,12 +101,13 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
 
 
 
-fn read_reverse_strand(flag:u16, paired: bool) -> bool {
+fn read_reverse_strand(flag:u16) -> bool {
+    let read_paired = 0b1;
     let read_reverse = 0b10000;
     let mate_reverse = 0b100000;
     let first_in_pair = 0b1000000;
     let second_in_pair = 0b10000000;
-    if paired{
+    if (flag & read_paired) != 0 {
         if (flag & read_reverse) != 0 && (flag & first_in_pair) != 0 {
             return true
         }

@@ -11,7 +11,7 @@ use anyhow::{Context, Ok, Result};
 use rust_htslib::bcf::{Format, Header, Writer};
 
 
-pub mod find_bases;
+mod find_bases;
 mod assign_bases;
 mod filter_candidates;
 
