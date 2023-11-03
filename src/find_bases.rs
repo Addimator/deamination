@@ -72,7 +72,7 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
     // Go through all CpG positions and find the bases from the bedGraph entries
     for (chrom, vcf_pos) in vcf_positions.iter() {
         for ((bed_chrom, start_pos, end_pos, _flag), (read_dir, sequence)) in &bedGraphEntries {
-            if chrom == bed_chrom && vcf_pos > start_pos && vcf_pos < end_pos {
+            if chrom == bed_chrom && vcf_pos > start_pos && vcf_pos < &(end_pos - 1) {
 
                 let base_pos;
                 if *read_dir == 'f' {
