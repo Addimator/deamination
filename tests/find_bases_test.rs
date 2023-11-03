@@ -18,6 +18,25 @@ fn cleanup_file(f: &str) {
 
 
 
+fn get_true_counts_complete(direction: &str) -> BTreeMap<(String, u32, char), HashMap<char, u32>> {
+    let mut true_bases: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
+    
+    if direction != "r" {
+        let mut value = HashMap::new();
+        value.insert('T', 1);
+        value.insert('C', 1);
+        true_bases.insert(("21".to_string(), 7, 'f'), value);
+    }
+    if direction != "f" {
+        let mut value = HashMap::new();
+        value.insert('G', 1);
+        value.insert('A', 1);
+        true_bases.insert(("21".to_string(), 7, 'r'), value);
+    }
+    true_bases
+}
+
+
 fn extract_vcf_positions(test: &str) -> Result<()> {
     let true_candidates = vec![("21".to_string(), 7)];    
     let basedir = basedir(test);
@@ -62,18 +81,7 @@ fn test_extract_vcf_positions() -> Result<()> {
 
 #[test]
 fn test_count_bases_mid() -> Result<()> {
-    let mut true_bases: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
-
-    let mut value1 = HashMap::new();
-    value1.insert('T', 1);
-    value1.insert('C', 1);
-
-    let mut value2 = HashMap::new();
-    value2.insert('G', 1);
-    value2.insert('A', 1);
-
-    true_bases.insert(("21".to_string(), 7, 'f'), value1);
-    true_bases.insert(("21".to_string(), 7, 'r'), value2);
+    let true_bases = get_true_counts_complete("fr");
     count_bases_in_reads("find_bases", "alignment_mid_c", true_bases)?;
     Ok(())
 }
@@ -81,18 +89,7 @@ fn test_count_bases_mid() -> Result<()> {
 
 #[test]
 fn test_count_bases_starting_c() -> Result<()> {
-    let mut true_bases: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
-
-    let mut value1 = HashMap::new();
-    value1.insert('T', 1);
-    value1.insert('C', 1);
-
-    let mut value2 = HashMap::new();
-    value2.insert('G', 1);
-    value2.insert('A', 1);
-
-    true_bases.insert(("21".to_string(), 7, 'f'), value1);
-    true_bases.insert(("21".to_string(), 7, 'r'), value2);
+    let true_bases = get_true_counts_complete("fr");
     count_bases_in_reads("find_bases", "alignment_start_c", true_bases)?;
     Ok(())
 }
@@ -100,14 +97,7 @@ fn test_count_bases_starting_c() -> Result<()> {
 
 #[test]
 fn test_count_bases_starting_g() -> Result<()> {
-    let mut true_bases: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
-
-
-    let mut value2 = HashMap::new();
-    value2.insert('G', 1);
-    value2.insert('A', 1);
-
-    true_bases.insert(("21".to_string(), 7, 'r'), value2);
+    let true_bases = get_true_counts_complete("r");
     count_bases_in_reads("find_bases", "alignment_start_g", true_bases)?;
     Ok(())
 }
@@ -115,31 +105,15 @@ fn test_count_bases_starting_g() -> Result<()> {
 
 #[test]
 fn test_count_bases_ending_c() -> Result<()> {
-    let mut true_bases: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
-
-    let mut value1 = HashMap::new();
-    value1.insert('T', 1);
-    value1.insert('C', 1);
-
-    true_bases.insert(("21".to_string(), 7, 'f'), value1);
+    let true_bases = get_true_counts_complete("f");
     count_bases_in_reads("find_bases", "alignment_end_c", true_bases)?;
     Ok(())
 }
 
 #[test]
 fn test_count_bases_ending_g() -> Result<()> {
-    let mut true_bases: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
+    let true_bases = get_true_counts_complete("fg");
 
-    let mut value1 = HashMap::new();
-    value1.insert('T', 1);
-    value1.insert('C', 1);
-
-    let mut value2 = HashMap::new();
-    value2.insert('G', 1);
-    value2.insert('A', 1);
-
-    true_bases.insert(("21".to_string(), 7, 'f'), value1);
-    true_bases.insert(("21".to_string(), 7, 'r'), value2);
     count_bases_in_reads("find_bases", "alignment_end_g", true_bases)?;
     Ok(())
 }
