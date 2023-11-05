@@ -1,7 +1,9 @@
 use std::collections::{HashMap, BTreeMap};
 use std::fs::File;
-use std::io::{BufReader, Result, BufRead};
+use std::io::{BufReader, BufRead, Write, BufWriter};
 use std::path::PathBuf;
+use anyhow::{Context, Result};
+
 
 /// Extracts all the CpG positions in a vcf to a vector
 /// Input: 
@@ -99,7 +101,23 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
     Ok(position_counts)
 }
 
+pub fn write_output(output: Option<PathBuf>, position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>>) -> Result<()>{
+    let output_file = File::create(output.unwrap()).with_context(|| format!("error opening BCF writer"))?;
+    let mut writer = BufWriter::new(output_file);
 
+    // Schreiben Sie die Ergebnisse in die Datei
+    writeln!(&mut writer, "#CHROM	#POS	#DIR	#A	#C	#G	#T	#N")?;
+    for ((reference_name, position, direction), counts) in &position_counts {
+        write!(
+            &mut writer,
+            "{}	{}	{}	",
+            reference_name, position, direction
+        )?;
+        write!(&mut writer, "{}	{}	{}	{}	{}", counts.get(&'A').unwrap_or(&0), counts.get(&'C').unwrap_or(&0), counts.get(&'G').unwrap_or(&0), counts.get(&'T').unwrap_or(&0), counts.get(&'N').unwrap_or(&0))?;
+        writeln!(&mut writer)?;
+    }
+    Ok(())
+}
 
 fn read_reverse_strand(flag:u16) -> bool {
     let read_paired = 0b1;

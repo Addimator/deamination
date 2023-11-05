@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{BufReader, BufRead, Write, BufWriter};
 use structopt::StructOpt;
 use std::path::PathBuf;
-use find_bases::{extract_vcf_positions, count_bases_in_reads};
+use find_bases::{extract_vcf_positions, count_bases_in_reads, write_output};
 use assign_bases::update_base_counts;
 use filter_candidates::{filter_mutations, filter_inconsistent};
 use std::collections::HashMap;
@@ -114,12 +114,6 @@ pub fn main() -> Result<()> {
             let mut vcf_positions = extract_vcf_positions(candidates)?;
             let filtered_vcf_positions = filter_mutations(vcf_positions, mutations)?;
             let filtered_vcf_positions = filter_inconsistent(filtered_vcf_positions, consistent)?;
-            // let filtered_vcf_positions = filter_inconsistent(vcf_positions, consistent)?;
-
-            // let output_file = File::create(output.unwrap())?;
-            // let mut writer = BufWriter::new(output_file);
-            //Write the BCF header (every contig appears once)
-
             let mut bcf_header = Header::new();
             for contig_id in filtered_vcf_positions.clone().into_iter().map(|(contig, _)| contig).collect::<Vec<String>>() {
                 let header_contig_line = format!(r#"##contig=<ID={}>"#, contig_id);
@@ -167,20 +161,7 @@ pub fn main() -> Result<()> {
             let position_counts = count_bases_in_reads(sam_file_path, &vcf_positions)?;
             println!("{:?}", vcf_positions);
             // Öffnen Sie die Ausgabedatei zum Schreiben
-            let output_file = File::create(output.unwrap())?;
-            let mut writer = BufWriter::new(output_file);
-
-            // Schreiben Sie die Ergebnisse in die Datei
-            writeln!(&mut writer, "#CHROM	#POS	#DIR	#A	#C	#G	#T	#N")?;
-            for ((reference_name, position, direction), counts) in &position_counts {
-                write!(
-                    &mut writer,
-                    "{}	{}	{}	",
-                    reference_name, position, direction
-                )?;
-                write!(&mut writer, "{}	{}	{}	{}	{}", counts.get(&'A').unwrap_or(&0), counts.get(&'C').unwrap_or(&0), counts.get(&'G').unwrap_or(&0), counts.get(&'T').unwrap_or(&0), counts.get(&'N').unwrap_or(&0))?;
-                writeln!(&mut writer)?;
-            }
+            write_output(output, position_counts);
         }
         Deamination::BaseAssigner { bedGraph_path, bases_file_path, output } => {
             let mut meth_pos_forward: HashMap<String, HashMap<char, usize>> = HashMap::new();
