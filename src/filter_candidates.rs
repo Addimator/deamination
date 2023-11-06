@@ -2,7 +2,9 @@
 use std::fs::File;
 use std::io::{BufReader, Result, BufRead};
 use std::path::PathBuf;
-
+use rust_htslib::bcf::{Format, Header, Writer};
+use anyhow::{Context};
+use rust_htslib::bcf::record::Numeric;
 
 
 pub fn filter_mutations(mut vcf_positions: Vec<(String, u32)>, mutations: PathBuf) -> Result<Vec<(String, u32)>> {
@@ -16,7 +18,7 @@ pub fn filter_mutations(mut vcf_positions: Vec<(String, u32)>, mutations: PathBu
             // Skip comment lines
             let fields: Vec<&str> = line.split('\t').collect();
             if fields.len() >= 2 {
-                if let [chrom, pos, _, reference, alternate, ..] = &fields[..] {
+                if let [chrom, pos, ..] = &fields[..] {
                     let chrom = chrom.trim_start_matches("chr");
 
                     if let Ok(pos) = pos.parse::<u32>() {
@@ -36,7 +38,7 @@ pub fn filter_mutations(mut vcf_positions: Vec<(String, u32)>, mutations: PathBu
 }
 
 
-pub fn filter_inconsistent(mut vcf_positions: Vec<(String, u32)>, consistent: PathBuf) -> Result<Vec<(String, u32)>> {
+pub fn filter_inconsistent(vcf_positions: Vec<(String, u32)>, consistent: PathBuf) -> Result<Vec<(String, u32)>> {
     let bedgraph_file = File::open(consistent).expect("Unable to open bedGraph file");
     let bedgraph_reader = BufReader::new(bedgraph_file);
     let mut vcf_positions_filtered = Vec::new();
@@ -63,5 +65,47 @@ pub fn filter_inconsistent(mut vcf_positions: Vec<(String, u32)>, consistent: Pa
     }
 
     Ok(vcf_positions_filtered)
-        
+}
+
+pub fn write_filtered_candidates(output: Option<PathBuf>, filtered_vcf_positions: Vec<(String, u32)> ) -> Result<()>{
+    let mut bcf_header = Header::new();
+    for contig_id in filtered_vcf_positions.clone().into_iter().map(|(contig, _)| contig).collect::<Vec<String>>() {
+        let header_contig_line = format!(r#"##contig=<ID={}>"#, contig_id);
+        bcf_header.push_record(header_contig_line.as_bytes());
+    }
+
+    //Create a BCF writer depending on the output (to file or to stdout)
+    let mut bcf_writer;
+    match output {
+        Some(path) => {
+            bcf_writer = Writer::from_path(path, &bcf_header, true, Format::Bcf)
+                .with_context(|| format!("error opening BCF writer")).unwrap();
+        }
+        None => {
+            bcf_writer = Writer::from_stdout(&bcf_header, true, Format::Bcf)
+                .with_context(|| format!("error opening BCF writer")).unwrap();
+        }
+    }
+
+    //Prepare the records
+    let mut record = bcf_writer.empty_record();
+    for (contig, pos) in filtered_vcf_positions {
+        let rid = bcf_writer
+            .header()
+            .name2rid(contig.as_bytes())
+            .with_context(|| format!("error finding contig {contig} in header.")).unwrap();
+        record.set_rid(Some(rid));
+        record.set_pos(pos as i64 - 1);
+        let new_alleles: &[&[u8]] = &[b"CG", b"<METH>"];
+        record
+            .set_alleles(new_alleles)
+            .with_context(|| format!("error setting alleles")).unwrap();
+        record.set_qual(f32::missing());
+
+        // Write record
+        bcf_writer
+            .write(&record)
+            .with_context(|| format!("failed to write BCF record with methylation candidate")).unwrap();
+    }
+    Ok(())
 }

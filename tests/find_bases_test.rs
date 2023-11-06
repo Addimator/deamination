@@ -2,7 +2,7 @@ use anyhow::{Result, Context, Ok};
 use std::{fs, path::Path, path::PathBuf};
 use std::collections::{HashMap, BTreeMap};
 use std::fs::File;
-use std::io::{Write, Read, BufReader};
+use std::io::{Read, BufReader};
 
 use deamination;
 
@@ -70,22 +70,25 @@ fn count_bases_in_reads(test: &str, alignment_file: &str, true_position_counts: 
     Ok(())
 }
 
-fn write_output(test: &str, position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>>) -> Result<()> {
+fn write_pos_to_bases(test: &str, position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>>) -> Result<()> {
     let basedir = basedir(test);
+
+    // Read true output file and get its content
+    let true_pos_to_bases = format!("{}/pos_to_bases.txt", basedir);
+    let file = File::open(PathBuf::from(true_pos_to_bases.clone()))?;
+    let mut buf_reader = BufReader::new(file);
+    let mut true_output_content = String::new();
+    buf_reader.read_to_string(&mut true_output_content)?;
+
+    // Compute output of method
     let output = format!("{}/output_test.txt", basedir);
     cleanup_file(&output);
-    let true_output_content = 
-
-"#CHROM	#POS	#DIR	#A	#C	#G	#T	#N
-21	7	f	0	1	0	1	0
-21	7	r	1	0	1	0	0
-";
-
-    deamination::find_bases::write_output(
+    deamination::find_bases::write_pos_to_bases(
         Some(PathBuf::from(output.clone())), position_counts
     )
     .with_context(|| format!("error computing the position counts"))?;
     
+    // Read method output file and get its content
     let file = File::open(PathBuf::from(output.clone()))?;
     let mut buf_reader = BufReader::new(file);
     let mut output_content = String::new();
@@ -144,10 +147,10 @@ fn test_count_bases_ending_g() -> Result<()> {
 }
 
 #[test]
-fn test_write_output() -> Result<()> {
+fn test_write_pos_to_bases() -> Result<()> {
     let true_bases = get_true_counts_complete("fg");
 
-    write_output("find_bases", true_bases)?;
+    write_pos_to_bases("find_bases", true_bases)?;
     Ok(())
 }
 

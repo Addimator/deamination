@@ -48,9 +48,9 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
 
     // Initialize a HashMap to store the counts
     let mut position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
-    let mut bedGraphEntries: HashMap<(String, u32, u32, u16, i32), (char, String)> = HashMap::new();
+    let mut bed_graph_entries: HashMap<(String, u32, u32, u16, i32), (char, String)> = HashMap::new();
     let mut id = 0; // We need the ID because different aligned reads can look the same
-    // Process the SAM and fill bedGraphEntries with the lines
+    // Process the SAM and fill bed_graph_entries with the lines
     for line in sam_reader.lines() {
         let line = line.unwrap();
         if line.starts_with('@') {
@@ -68,12 +68,12 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
         let reverse_read = read_reverse_strand(flag);
         let direction = if reverse_read { 'r' } else { 'f' };
         
-        bedGraphEntries.insert((chrom.clone(), position, position + sequence.len() as u32, flag, id), (direction, sequence));
+        bed_graph_entries.insert((chrom.clone(), position, position + sequence.len() as u32, flag, id), (direction, sequence));
         id += 1;
     }
     // Go through all CpG positions and find the bases from the bedGraph entries
     for (chrom, vcf_pos) in vcf_positions.iter() {
-        for ((bed_chrom, start_pos, end_pos, _flag, _id), (read_dir, sequence)) in &bedGraphEntries {
+        for ((bed_chrom, start_pos, end_pos, _flag, _id), (read_dir, sequence)) in &bed_graph_entries {
             let base_pos;
             if *read_dir == 'f' {
                 if chrom == bed_chrom && vcf_pos >= start_pos && vcf_pos < end_pos {
@@ -101,7 +101,7 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
     Ok(position_counts)
 }
 
-pub fn write_output(output: Option<PathBuf>, position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>>) -> Result<()>{
+pub fn write_pos_to_bases(output: Option<PathBuf>, position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>>) -> Result<()>{
     let output_file = File::create(output.unwrap()).with_context(|| format!("error opening BCF writer"))?;
     let mut writer = BufWriter::new(output_file);
 
