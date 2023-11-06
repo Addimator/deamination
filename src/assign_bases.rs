@@ -120,7 +120,7 @@ fn bases_percentage(target_map: &HashMap<String, BTreeMap<char, usize>>, chrom: 
     0.0 // Return 0.0 if something goes wrong or if sum_bases is 0.
 }
 
-pub fn write_assigned_bases(output: Option<PathBuf>, mut meth_pos_forward:HashMap<String, BTreeMap<char, usize>>, mut meth_pos_reverse:HashMap<String, BTreeMap<char, usize>>, mut unmeth_pos_forward:HashMap<String, BTreeMap<char, usize>>, mut unmeth_pos_reverse: HashMap<String, BTreeMap<char, usize>>) -> Result<()>{
+pub fn write_assigned_bases(output: Option<PathBuf>, meth_pos_forward:HashMap<String, BTreeMap<char, usize>>, meth_pos_reverse:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_forward:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_reverse: HashMap<String, BTreeMap<char, usize>>) -> Result<()>{
             
     let mut writer: Box<dyn Write> = match output {
         Some(path) => {

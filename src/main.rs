@@ -3,9 +3,8 @@ use std::path::PathBuf;
 use find_bases::{extract_vcf_positions, count_bases_in_reads, write_pos_to_bases};
 use assign_bases::{read_bases_file, process_bedgraph_data, write_assigned_bases};
 use filter_candidates::{filter_mutations, filter_inconsistent, write_filtered_candidates};
-use rust_htslib::bcf::record::Numeric;
-use anyhow::{Context, Ok, Result};
-use rust_htslib::bcf::{Format, Header, Writer};
+use anyhow::{Ok, Result};
+
 
 
 mod find_bases;

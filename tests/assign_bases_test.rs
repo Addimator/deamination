@@ -26,8 +26,8 @@ fn create_true_baseline_maps() -> Result<(HashMap<(String, usize), Vec<String>>,
 }
 
 fn create_true_position_maps() -> Result<(HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>)>{
-    let mut meth_pos_forward = HashMap::new();
-    let mut meth_pos_reverse = HashMap::new();
+    let meth_pos_forward = HashMap::new();
+    let meth_pos_reverse = HashMap::new();
     let mut unmeth_pos_forward = HashMap::new();
     let mut unmeth_pos_reverse = HashMap::new();
     

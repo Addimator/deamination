@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{BufReader, Result, BufRead};
 use std::path::PathBuf;
 use rust_htslib::bcf::{Format, Header, Writer};
-use anyhow::{Context};
+use anyhow::Context;
 use rust_htslib::bcf::record::Numeric;
 
 
