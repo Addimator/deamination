@@ -1,5 +1,6 @@
 use std::collections::{HashMap, BTreeMap};
 use std::fs::File;
+use std::hash::Hash;
 use std::io::{BufReader, BufRead, Write, BufWriter};
 use std::path::PathBuf;
 use anyhow::{Context, Result};
@@ -50,6 +51,8 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
     let mut position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
     let mut bed_graph_entries: HashMap<(String, u32, u32, u16, i32), (char, String)> = HashMap::new();
     let mut id = 0; // We need the ID because different aligned reads can look the same
+    
+    let mut read_to_dir: HashMap<u16, char> = HashMap::new();
     // Process the SAM and fill bed_graph_entries with the lines
     for line in sam_reader.lines() {
         let line = line.unwrap();
@@ -64,10 +67,13 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
         let chrom = fields[2].to_string();
         let position = fields[3].parse::<u32>().unwrap();
         let sequence = fields[9].to_string();
-
+        if read_invalid(flag) {
+            read_to_dir.insert(flag, 'i');
+            continue;
+        }
         let reverse_read = read_reverse_strand(flag);
         let direction = if reverse_read { 'r' } else { 'f' };
-        
+        read_to_dir.insert(flag, direction);
         bed_graph_entries.insert((chrom.clone(), position, position + sequence.len() as u32, flag, id), (direction, sequence));
         id += 1;
     }
@@ -98,6 +104,7 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
             }
         }
     }
+    println!("Reads to dir: {:?}", read_to_dir);
     Ok(position_counts)
 }
 
@@ -121,11 +128,12 @@ pub fn write_pos_to_bases(output: Option<PathBuf>, position_counts: BTreeMap<(St
 
 fn read_reverse_strand(flag:u16) -> bool {
     let read_paired = 0b1;
+    let read_mapped_porper_pair = 0b01;
     let read_reverse = 0b10000;
     let mate_reverse = 0b100000;
     let first_in_pair = 0b1000000;
     let second_in_pair = 0b10000000;
-    if (flag & read_paired) != 0 {
+    if (flag & read_paired) != 0 && (flag & read_mapped_porper_pair) != 0 {
         if (flag & read_reverse) != 0 && (flag & first_in_pair) != 0 {
             return true
         }
@@ -140,6 +148,16 @@ fn read_reverse_strand(flag:u16) -> bool {
     }
     false
     // read.inner.core.flag == 163 || read.inner.core.flag == 83 || read.inner.core.flag == 16
-    
 }
 
+fn read_invalid(flag:u16) -> bool {
+    let secondary_alignment = 0b100000000;
+    let qc_failed = 0b1000000000;
+    let duplicate = 0b10000000000;
+    let supplemental = 0b100000000000;
+    if (flag & secondary_alignment) != 0 && (flag & qc_failed) != 0 
+    && (flag & duplicate) != 0 && (flag & supplemental) != 0 {
+        return true
+    }
+    false    
+}
