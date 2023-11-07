@@ -9,3 +9,9 @@ edition = "2021"
 structopt = "0.3"  # Verwenden Sie die entsprechende Version von structopt
 anyhow = "1.0"
 rust-htslib = "0.43.1"
+
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+panic = "abort"
