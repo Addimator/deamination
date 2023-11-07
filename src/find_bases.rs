@@ -126,7 +126,7 @@ pub fn write_pos_to_bases(output: Option<PathBuf>, position_counts: BTreeMap<(St
     Ok(())
 }
 
-fn read_reverse_strand(flag:u16) -> bool {
+pub fn read_reverse_strand(flag:u16) -> bool {
     let read_paired = 0b1;
     let read_mapped_porper_pair = 0b01;
     let read_reverse = 0b10000;
@@ -150,13 +150,13 @@ fn read_reverse_strand(flag:u16) -> bool {
     // read.inner.core.flag == 163 || read.inner.core.flag == 83 || read.inner.core.flag == 16
 }
 
-fn read_invalid(flag:u16) -> bool {
+pub fn read_invalid(flag:u16) -> bool {
     let secondary_alignment = 0b100000000;
     let qc_failed = 0b1000000000;
     let duplicate = 0b10000000000;
     let supplemental = 0b100000000000;
-    if (flag & secondary_alignment) != 0 && (flag & qc_failed) != 0 
-    && (flag & duplicate) != 0 && (flag & supplemental) != 0 {
+    if (flag & secondary_alignment) != 0 || (flag & qc_failed) != 0 
+    || (flag & duplicate) != 0 || (flag & supplemental) != 0 {
         return true
     }
     false    

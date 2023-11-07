@@ -70,6 +70,16 @@ fn count_bases_in_reads(test: &str, alignment_file: &str, true_position_counts: 
     Ok(())
 }
 
+
+fn read_invalid() -> Result<()> {
+    let invalid = deamination::find_bases::read_invalid(2177);
+    assert_eq!(
+        invalid,
+        true
+    );
+    Ok(())
+}
+
 fn write_pos_to_bases(test: &str, position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>>) -> Result<()> {
     let basedir = basedir(test);
 
@@ -143,6 +153,12 @@ fn test_count_bases_ending_g() -> Result<()> {
     let true_bases = get_true_counts_complete("fg");
 
     count_bases_in_reads("find_bases", "alignment_end_g", true_bases)?;
+    Ok(())
+}
+
+#[test]
+fn test_read_invalid() -> Result<()> {
+    read_invalid()?;
     Ok(())
 }
 

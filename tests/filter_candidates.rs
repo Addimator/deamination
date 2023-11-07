@@ -1,7 +1,5 @@
 use anyhow::{Result, Context, Ok};
-use std::{fs, path::Path, path::PathBuf};
-use std::fs::File;
-use std::io::{Read, BufReader};
+use std::path::PathBuf;
 
 use deamination;
 
@@ -9,15 +7,6 @@ use deamination;
 fn basedir(test: &str) -> String {
     format!("tests/resources/{}", test)
 }
-
-fn cleanup_file(f: &str) {
-    if Path::new(f).exists() {
-        fs::remove_file(f).unwrap();
-    }
-}
-
-
-
 
 fn filter_mutations(test: &str) -> Result<()> {
     let basedir = basedir(test);
