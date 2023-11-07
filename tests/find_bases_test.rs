@@ -72,7 +72,7 @@ fn count_bases_in_reads(test: &str, alignment_file: &str, true_position_counts: 
 
 
 fn read_invalid() -> Result<()> {
-    let invalid = deamination::find_bases::read_invalid(2177);
+    let invalid = deamination::find_bases::read_invalid(81);
     assert_eq!(
         invalid,
         true

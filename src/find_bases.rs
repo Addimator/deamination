@@ -151,13 +151,38 @@ pub fn read_reverse_strand(flag:u16) -> bool {
 }
 
 pub fn read_invalid(flag:u16) -> bool {
-    let secondary_alignment = 0b100000000;
-    let qc_failed = 0b1000000000;
-    let duplicate = 0b10000000000;
-    let supplemental = 0b100000000000;
-    if (flag & secondary_alignment) != 0 || (flag & qc_failed) != 0 
-    || (flag & duplicate) != 0 || (flag & supplemental) != 0 {
-        return true
+    // let read_paired = 0b1;
+    // let read_mapped_porper_pair = 0b01;
+    // let read_unmapped = 0b100;
+    // let mate_unmapped = 0b1000;
+    // let read_reverse_strand = 0b10000;
+    // let mate_reverse_strand = 0b100000;
+    
+    // let secondary_alignment = 0b100000000;
+    // let qc_failed = 0b1000000000;
+    // let duplicate = 0b10000000000;
+    // let supplemental = 0b100000000000;
+    // if (flag & secondary_alignment) != 0 
+    // || (flag & qc_failed) != 0 
+    // || (flag & duplicate) != 0 
+    // || (flag & supplemental) != 0
+    // || (flag & read_unmapped) != 0
+    // || (flag & mate_unmapped)!= 0
+    // {
+    //     return true
+    // }
+    // // invalid if both pairs are reverse or forward
+    // if (flag & read_paired) != 0 && (flag & read_mapped_porper_pair) != 0 {
+    //     if  (flag & read_reverse_strand) != 0 && (flag & mate_reverse_strand) != 0
+    //     || (flag & read_reverse_strand) == 0 && (flag & mate_reverse_strand) == 0
+    //     {
+    //         return true
+    //     }
+    // }
+    // false    
+    if flag == 0 || flag == 16 || flag == 99 || flag == 83 || flag == 147 || flag == 163 {
+        return false
     }
-    false    
+    return true
+
 }
