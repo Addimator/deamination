@@ -64,19 +64,19 @@ pub fn process_bedgraph_data(bed_graph_path: PathBuf, forward_baseline_map: &Has
         } else {
             chrom_orig
         };
-        let position = (bed_fields[1].parse::<usize>().context("Invalid position value")? + bed_fields[2].parse::<usize>().context("Invalid position value")?) / 2;
+        let position = [bed_fields[1].parse::<usize>().context("Invalid position value")?, bed_fields[2].parse::<usize>().context("Invalid position value")?];
         let methylation = bed_fields[3].parse::<f64>().context("Invalid methylation value")?;
 
-        if forward_baseline_map.contains_key(&(chrom.clone(), position)) {
-            let bases_fields_forward = &forward_baseline_map[&(chrom.clone(), position)];
+        if forward_baseline_map.contains_key(&(chrom.clone(), position[1])) {
+            let bases_fields_forward = &forward_baseline_map[&(chrom.clone(), position[1])];
             if methylation > 20.0 {
                 update_base_counts(&mut meth_pos_forward, chrom.clone(), bases_fields_forward.to_vec());
             } else {
                 update_base_counts(&mut unmeth_pos_forward, chrom.clone(), bases_fields_forward.to_vec());
             }
         }
-        if reverse_baseline_map.contains_key(&(chrom.clone(), position)) {
-            let bases_fields_reverse = &reverse_baseline_map[&(chrom.clone(), position)];
+        if reverse_baseline_map.contains_key(&(chrom.clone(), position[0])) {
+            let bases_fields_reverse = &reverse_baseline_map[&(chrom.clone(), position[0])];
             if methylation > 20.0 {
                 update_base_counts(&mut meth_pos_reverse, chrom.clone(), bases_fields_reverse.to_vec());
             } else {

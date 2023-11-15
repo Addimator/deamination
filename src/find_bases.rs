@@ -52,7 +52,6 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
     let mut bed_graph_entries: HashMap<(String, u32, u32, u16, i32), (char, String)> = HashMap::new();
     let mut id = 0; // We need the ID because different aligned reads can look the same
     
-    let mut read_to_dir: HashMap<u16, char> = HashMap::new();
     // Process the SAM and fill bed_graph_entries with the lines
     for line in sam_reader.lines() {
         let line = line.unwrap();
@@ -68,12 +67,10 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
         let position = fields[3].parse::<u32>().unwrap();
         let sequence = fields[9].to_string();
         if read_invalid(flag) {
-            read_to_dir.insert(flag, 'i');
             continue;
         }
         let reverse_read = read_reverse_strand(flag);
         let direction = if reverse_read { 'r' } else { 'f' };
-        read_to_dir.insert(flag, direction);
         bed_graph_entries.insert((chrom.clone(), position, position + sequence.len() as u32, flag, id), (direction, sequence));
         id += 1;
     }
@@ -84,7 +81,7 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
             if *read_dir == 'f' {
                 if chrom == bed_chrom && vcf_pos >= start_pos && vcf_pos < end_pos {
                     base_pos = *vcf_pos;
-                    
+                    println!("{:?}", start_pos);
                     let entry = position_counts
                     .entry((chrom.clone(), *vcf_pos, *read_dir))
                     .or_insert(HashMap::new());
@@ -94,6 +91,7 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
             else {
                 if chrom == bed_chrom && (vcf_pos + 1) >= *start_pos && (vcf_pos + 1) < *end_pos {
                     base_pos = *vcf_pos + 1;
+                    println!("{:?}", start_pos);
                     
                     let entry = position_counts
                     .entry((chrom.clone(), *vcf_pos, *read_dir))
@@ -104,7 +102,7 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
             }
         }
     }
-    println!("Reads to dir: {:?}", read_to_dir);
+    println!("Reads to dir: {:?}", position_counts);
     Ok(position_counts)
 }
 

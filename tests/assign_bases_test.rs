@@ -21,7 +21,7 @@ fn create_true_baseline_maps() -> Result<(HashMap<(String, usize), Vec<String>>,
     let mut forward_baseline_map = HashMap::new();
     let mut reverse_baseline_map = HashMap::new();
     forward_baseline_map.insert(("21".to_string(), 7), vec!["0".to_string(), "1".to_string(), "0".to_string(), "1".to_string(), "0".to_string()]);
-    reverse_baseline_map.insert(("21".to_string(), 7), vec!["1".to_string(), "0".to_string(), "1".to_string(), "0".to_string(), "0".to_string()]);
+    reverse_baseline_map.insert(("21".to_string(), 7), vec!["0".to_string(), "0".to_string(), "1".to_string(), "0".to_string(), "0".to_string()]);
     Ok((forward_baseline_map, reverse_baseline_map))
 }
 
@@ -33,7 +33,7 @@ fn create_true_position_maps() -> Result<(HashMap<String, BTreeMap<char, usize>>
     
     let inner_unmeth_pos_forward = [('A', 0), ('C', 1), ('G', 0), ('T', 1),  ('N', 0)].iter().cloned().collect();
     unmeth_pos_forward.insert("21".to_string(), inner_unmeth_pos_forward);
-    let inner_unmeth_pos_reverse = [('A', 1), ('C', 0), ('G', 1), ('T', 0),  ('N', 0)].iter().cloned().collect();
+    let inner_unmeth_pos_reverse = [('A', 0), ('C', 0), ('G', 1), ('T', 0),  ('N', 0)].iter().cloned().collect();
     unmeth_pos_reverse.insert("21".to_string(), inner_unmeth_pos_reverse);
     Ok((meth_pos_forward, meth_pos_reverse, unmeth_pos_forward, unmeth_pos_reverse))
 
