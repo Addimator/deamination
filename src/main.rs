@@ -118,9 +118,12 @@ pub fn main() -> Result<()> {
             write_pos_to_bases(output, position_counts)?;
         }
         Deamination::BaseAssigner { bed_graph_path, bases_file_path, output } => {
-            let (forward_baseline_map, reverse_baseline_map) = read_bases_file(bases_file_path)?;
-            let (meth_pos_forward, meth_pos_reverse, unmeth_pos_forward, unmeth_pos_reverse) = process_bedgraph_data(bed_graph_path, &forward_baseline_map, &reverse_baseline_map)?;
-            write_assigned_bases(output, meth_pos_forward, meth_pos_reverse, unmeth_pos_forward, unmeth_pos_reverse)?;
+            let (forward_baseline_map_0, forward_baseline_map_1, reverse_baseline_map_0, reverse_baseline_map_1) = read_bases_file(bases_file_path)?;
+            let (meth_pos_forward_0, meth_pos_reverse_0, unmeth_pos_forward_0, unmeth_pos_reverse_0, 
+                meth_pos_forward_1, meth_pos_reverse_1, unmeth_pos_forward_1, unmeth_pos_reverse_1) = process_bedgraph_data(bed_graph_path, &forward_baseline_map_0, &forward_baseline_map_1, &reverse_baseline_map_0, &reverse_baseline_map_1)?;
+            write_assigned_bases(output, 
+                meth_pos_forward_0, meth_pos_reverse_0, unmeth_pos_forward_0, unmeth_pos_reverse_0, 
+                meth_pos_forward_1, meth_pos_reverse_1, unmeth_pos_forward_1, unmeth_pos_reverse_1)?;
         }
     }
     Ok(())

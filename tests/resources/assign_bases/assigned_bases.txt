@@ -1,11 +1,21 @@
 meth_pos_forward: {}
 meth_pos_reverse: {}
 unmeth_pos_forward: {"21": {'A': 0, 'C': 1, 'G': 0, 'N': 0, 'T': 1}}
-unmeth_pos_reverse: {"21": {'A': 0, 'C': 0, 'G': 1, 'N': 0, 'T': 0}}
+unmeth_pos_reverse: {"21": {'A': 0, 'C': 2, 'G': 0, 'N': 0, 'T': 0}}
+meth_pos_forward: {}
+meth_pos_reverse: {}
+unmeth_pos_forward: {"21": {'A': 0, 'C': 0, 'G': 2, 'N': 0, 'T': 0}}
+unmeth_pos_reverse: {"21": {'A': 1, 'C': 0, 'G': 1, 'N': 0, 'T': 0}}
 
-Methylated positions 
+0: Methylated positions 
 	Ts in forward string: 0 
 	As in reverse String: 0
-Unmethylated positions 
+1: Methylated positions 
+	Ts in forward string: 0 
+	As in reverse String: 0
+0: Unmethylated positions 
 	Ts in forward string: 50 
 	As in reverse String: 0
+1: Unmethylated positions 
+	Ts in forward string: 0 
+	As in reverse String: 50

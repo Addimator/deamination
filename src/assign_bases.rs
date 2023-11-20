@@ -10,9 +10,13 @@ use std::collections::HashSet;
 
 
 
-pub fn read_bases_file(bases_file_path: PathBuf) -> Result<(HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>)> {
-    let mut forward_baseline_map: HashMap<(String, usize), Vec<String>> = HashMap::new();
-    let mut reverse_baseline_map: HashMap<(String, usize), Vec<String>> = HashMap::new();
+pub fn 
+
+read_bases_file(bases_file_path: PathBuf) -> Result<(HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>)> {
+    let mut forward_baseline_map_0: HashMap<(String, usize), Vec<String>> = HashMap::new();
+    let mut forward_baseline_map_1: HashMap<(String, usize), Vec<String>> = HashMap::new();
+    let mut reverse_baseline_map_0: HashMap<(String, usize), Vec<String>> = HashMap::new();
+    let mut reverse_baseline_map_1: HashMap<(String, usize), Vec<String>> = HashMap::new();
     
     let bases_file = File::open(bases_file_path)
         .with_context(|| format!("Unable to open bases file"))?;
@@ -27,28 +31,39 @@ pub fn read_bases_file(bases_file_path: PathBuf) -> Result<(HashMap<(String, usi
 
         let chrom = base_fields[0].to_string();
         let position = base_fields[1].parse::<usize>().context("Invalid position value")?;
-        let direction = base_fields[2].parse::<char>().context("Invalid direction")?;
+        let direction = base_fields[2].to_string();
 
-        if direction == 'f' {
-            forward_baseline_map.insert((chrom.clone(), position), base_fields[3..].to_vec());
+        if direction == "f_0" {
+            forward_baseline_map_0.insert((chrom.clone(), position), base_fields[3..].to_vec());
+        } 
+        if direction == "f_1" {
+            forward_baseline_map_1.insert((chrom.clone(), position), base_fields[3..].to_vec());
+        } 
+        if direction == "r_0" {
+            reverse_baseline_map_0.insert((chrom.clone(), position), base_fields[3..].to_vec());
         } else {
-            reverse_baseline_map.insert((chrom.clone(), position), base_fields[3..].to_vec());
+            reverse_baseline_map_1.insert((chrom.clone(), position), base_fields[3..].to_vec());
         }
 
     }
 
-    Ok((forward_baseline_map, reverse_baseline_map))
+    Ok((forward_baseline_map_0, forward_baseline_map_1, reverse_baseline_map_0 ,reverse_baseline_map_1))
 }
 
-pub fn process_bedgraph_data(bed_graph_path: PathBuf, forward_baseline_map: &HashMap<(String, usize), Vec<String>>, reverse_baseline_map: &HashMap<(String, usize), Vec<String>>) -> Result<(HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>)> {
+pub fn process_bedgraph_data(bed_graph_path: PathBuf, forward_baseline_map_0: &HashMap<(String, usize), Vec<String>>,forward_baseline_map_1: &HashMap<(String, usize), Vec<String>>, reverse_baseline_map_0: &HashMap<(String, usize), Vec<String>>, reverse_baseline_map_1: &HashMap<(String, usize), Vec<String>>)
+ -> Result<(HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>)> {
     let bedgraph_file = File::open(bed_graph_path)
         .with_context(|| format!("Unable to open bedGraph file."))?;
     let bedgraph_reader = BufReader::new(bedgraph_file);
 
-    let mut meth_pos_forward: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
-    let mut meth_pos_reverse: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
-    let mut unmeth_pos_forward: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
-    let mut unmeth_pos_reverse: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
+    let mut meth_pos_forward_0: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
+    let mut meth_pos_reverse_0: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
+    let mut unmeth_pos_forward_0: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
+    let mut unmeth_pos_reverse_0: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
+    let mut meth_pos_forward_1: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
+    let mut meth_pos_reverse_1: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
+    let mut unmeth_pos_forward_1: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
+    let mut unmeth_pos_reverse_1: HashMap<String, BTreeMap<char, usize>> = HashMap::new();
 
     for bed_line in bedgraph_reader.lines() {
         let bed_line = bed_line?;
@@ -67,25 +82,42 @@ pub fn process_bedgraph_data(bed_graph_path: PathBuf, forward_baseline_map: &Has
         let position = [bed_fields[1].parse::<usize>().context("Invalid position value")?, bed_fields[2].parse::<usize>().context("Invalid position value")?];
         let methylation = bed_fields[3].parse::<f64>().context("Invalid methylation value")?;
 
-        if forward_baseline_map.contains_key(&(chrom.clone(), position[1])) {
-            let bases_fields_forward = &forward_baseline_map[&(chrom.clone(), position[1])];
+        if forward_baseline_map_0.contains_key(&(chrom.clone(), position[1])) {
+            let bases_fields_forward = &forward_baseline_map_0[&(chrom.clone(), position[1])];
             if methylation > 20.0 {
-                update_base_counts(&mut meth_pos_forward, chrom.clone(), bases_fields_forward.to_vec());
+                update_base_counts(&mut meth_pos_forward_0, chrom.clone(), bases_fields_forward.to_vec());
             } else {
-                update_base_counts(&mut unmeth_pos_forward, chrom.clone(), bases_fields_forward.to_vec());
+                update_base_counts(&mut unmeth_pos_forward_0, chrom.clone(), bases_fields_forward.to_vec());
             }
         }
-        if reverse_baseline_map.contains_key(&(chrom.clone(), position[0])) {
-            let bases_fields_reverse = &reverse_baseline_map[&(chrom.clone(), position[0])];
+        if forward_baseline_map_1.contains_key(&(chrom.clone(), position[1])) {
+            let bases_fields_forward = &forward_baseline_map_1[&(chrom.clone(), position[1])];
             if methylation > 20.0 {
-                update_base_counts(&mut meth_pos_reverse, chrom.clone(), bases_fields_reverse.to_vec());
+                update_base_counts(&mut meth_pos_forward_1, chrom.clone(), bases_fields_forward.to_vec());
             } else {
-                update_base_counts(&mut unmeth_pos_reverse, chrom.clone(), bases_fields_reverse.to_vec());
+                update_base_counts(&mut unmeth_pos_forward_1, chrom.clone(), bases_fields_forward.to_vec());
+            }
+        }
+        if reverse_baseline_map_0.contains_key(&(chrom.clone(), position[0])) {
+            let bases_fields_reverse = &reverse_baseline_map_0[&(chrom.clone(), position[0])];
+            if methylation > 20.0 {
+                update_base_counts(&mut meth_pos_reverse_0, chrom.clone(), bases_fields_reverse.to_vec());
+            } else {
+                update_base_counts(&mut unmeth_pos_reverse_0, chrom.clone(), bases_fields_reverse.to_vec());
+            }
+        }
+        if reverse_baseline_map_1.contains_key(&(chrom.clone(), position[0])) {
+            let bases_fields_reverse = &reverse_baseline_map_1[&(chrom.clone(), position[0])];
+            if methylation > 20.0 {
+                update_base_counts(&mut meth_pos_reverse_1, chrom.clone(), bases_fields_reverse.to_vec());
+            } else {
+                update_base_counts(&mut unmeth_pos_reverse_1, chrom.clone(), bases_fields_reverse.to_vec());
             }
         }
     }
 
-    Ok((meth_pos_forward, meth_pos_reverse, unmeth_pos_forward, unmeth_pos_reverse))
+    Ok((meth_pos_forward_0, meth_pos_reverse_0, unmeth_pos_forward_0, unmeth_pos_reverse_0, 
+        meth_pos_forward_1, meth_pos_reverse_1, unmeth_pos_forward_1, unmeth_pos_reverse_1))
 }
 
 
@@ -120,7 +152,7 @@ fn bases_percentage(target_map: &HashMap<String, BTreeMap<char, usize>>, chrom: 
     0.0 // Return 0.0 if something goes wrong or if sum_bases is 0.
 }
 
-pub fn write_assigned_bases(output: Option<PathBuf>, meth_pos_forward:HashMap<String, BTreeMap<char, usize>>, meth_pos_reverse:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_forward:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_reverse: HashMap<String, BTreeMap<char, usize>>) -> Result<()>{
+pub fn write_assigned_bases(output: Option<PathBuf>, meth_pos_forward_0:HashMap<String, BTreeMap<char, usize>>, meth_pos_reverse_0:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_forward_0:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_reverse_0: HashMap<String, BTreeMap<char, usize>>, meth_pos_forward_1:HashMap<String, BTreeMap<char, usize>>, meth_pos_reverse_1:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_forward_1:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_reverse_1: HashMap<String, BTreeMap<char, usize>>) -> Result<()>{
             
     let mut writer: Box<dyn Write> = match output {
         Some(path) => {
@@ -132,25 +164,31 @@ pub fn write_assigned_bases(output: Option<PathBuf>, meth_pos_forward:HashMap<St
     };
 
 
-    writeln!(writer, "meth_pos_forward: {:?}", meth_pos_forward)?;
-    writeln!(writer, "meth_pos_reverse: {:?}", meth_pos_reverse)?;
-    writeln!(writer, "unmeth_pos_forward: {:?}", unmeth_pos_forward)?;
-    writeln!(writer, "unmeth_pos_reverse: {:?}", unmeth_pos_reverse)?;
+    writeln!(writer, "meth_pos_forward: {:?}", meth_pos_forward_0)?;
+    writeln!(writer, "meth_pos_reverse: {:?}", meth_pos_reverse_0)?;
+    writeln!(writer, "unmeth_pos_forward: {:?}", unmeth_pos_forward_0)?;
+    writeln!(writer, "unmeth_pos_reverse: {:?}", unmeth_pos_reverse_0)?;
+    writeln!(writer, "meth_pos_forward: {:?}", meth_pos_forward_1)?;
+    writeln!(writer, "meth_pos_reverse: {:?}", meth_pos_reverse_1)?;
+    writeln!(writer, "unmeth_pos_forward: {:?}", unmeth_pos_forward_1)?;
+    writeln!(writer, "unmeth_pos_reverse: {:?}", unmeth_pos_reverse_1)?;
     writeln!(writer)?;
 
     // Erstelle ein HashSet, um Schlüssel ohne Wiederholungen zu speichern
     let mut unique_keys: HashSet<String> = HashSet::new();
 
     // Füge die Schlüssel aus allen HashMaps zum HashSet hinzu
-    for map in &[&meth_pos_forward, &meth_pos_reverse, &unmeth_pos_forward, &unmeth_pos_reverse] {
+    for map in &[&meth_pos_forward_0, &meth_pos_reverse_0, &unmeth_pos_forward_0, &unmeth_pos_reverse_0, &meth_pos_forward_1, &meth_pos_reverse_1, &unmeth_pos_forward_1, &unmeth_pos_reverse_1] {
         for key in map.keys() {
             unique_keys.insert(key.clone());
         }
     }
 
     for chrom in unique_keys {
-        writeln!(writer, "Methylated positions \n\tTs in forward string: {} \n\tAs in reverse String: {}", bases_percentage(&meth_pos_forward, &chrom, 'T'), bases_percentage(&meth_pos_reverse, &chrom, 'A'))?;
-        writeln!(writer, "Unmethylated positions \n\tTs in forward string: {} \n\tAs in reverse String: {}", bases_percentage(&unmeth_pos_forward, &chrom, 'T'), bases_percentage(&unmeth_pos_reverse, &chrom, 'A'))?;
+        writeln!(writer, "0: Methylated positions \n\tTs in forward string: {} \n\tAs in reverse String: {}", bases_percentage(&meth_pos_forward_0, &chrom, 'T'), bases_percentage(&meth_pos_reverse_0, &chrom, 'A'))?;
+        writeln!(writer, "1: Methylated positions \n\tTs in forward string: {} \n\tAs in reverse String: {}", bases_percentage(&meth_pos_forward_1, &chrom, 'T'), bases_percentage(&meth_pos_reverse_1, &chrom, 'A'))?;
+        writeln!(writer, "0: Unmethylated positions \n\tTs in forward string: {} \n\tAs in reverse String: {}", bases_percentage(&unmeth_pos_forward_0, &chrom, 'T'), bases_percentage(&unmeth_pos_reverse_0, &chrom, 'A'))?;
+        writeln!(writer, "1: Unmethylated positions \n\tTs in forward string: {} \n\tAs in reverse String: {}", bases_percentage(&unmeth_pos_forward_1, &chrom, 'T'), bases_percentage(&unmeth_pos_reverse_1, &chrom, 'A'))?;
     }
     Ok(())
 }

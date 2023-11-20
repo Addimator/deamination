@@ -43,12 +43,12 @@ pub fn extract_vcf_positions(vcf_file_path: PathBuf) -> Result<Vec<(String, u32)
 ///     vcf_positions: Vector with all the CpG positions
 /// Output:
 ///      Result<BTreeMap<(String, u32, char), HashMap<char, u32>>>: Maps a specific position (chromosome, position, read_direction) to a map of bases to their number on this position
-pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String, u32)>) -> Result<BTreeMap<(String, u32, char), HashMap<char, u32>>> {
+pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String, u32)>) -> Result<BTreeMap<(String, u32, &str), HashMap<String, u32>>> {
     let sam_file = File::open(sam_file_path)?;
     let sam_reader = BufReader::new(sam_file);
 
     // Initialize a HashMap to store the counts
-    let mut position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
+    let mut position_counts: BTreeMap<(String, u32, &str), HashMap<String, u32>> = BTreeMap::new();
     let mut bed_graph_entries: HashMap<(String, u32, u32, u16, i32), (char, String)> = HashMap::new();
     let mut id = 0; // We need the ID because different aligned reads can look the same
     
@@ -77,26 +77,41 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
     // Go through all CpG positions and find the bases from the bedGraph entries
     for (chrom, vcf_pos) in vcf_positions.iter() {
         for ((bed_chrom, start_pos, end_pos, _flag, _id), (read_dir, sequence)) in &bed_graph_entries {
-            let base_pos;
+            let mut base_pos;
             if *read_dir == 'f' {
                 if chrom == bed_chrom && vcf_pos >= start_pos && vcf_pos < end_pos {
                     base_pos = *vcf_pos;
-                    println!("{:?}", start_pos);
+                    let base = char::from(sequence.as_bytes()[(base_pos - start_pos) as usize]).to_string();
                     let entry = position_counts
-                    .entry((chrom.clone(), *vcf_pos, *read_dir))
+                    .entry((chrom.clone(), *vcf_pos, "f_0"))
                     .or_insert(HashMap::new());
-                    *entry.entry(sequence.as_bytes()[(base_pos - start_pos) as usize] as char).or_insert(0) += 1;
+                    *entry.entry(base).or_insert(0) += 1;
+                }
+                if chrom == bed_chrom && (vcf_pos + 1) >= *start_pos && (vcf_pos + 1) < *end_pos {
+                    base_pos = *vcf_pos + 1;
+                    let base = char::from(sequence.as_bytes()[(base_pos - start_pos) as usize]).to_string();
+                    let entry = position_counts
+                    .entry((chrom.clone(), *vcf_pos, "f_1"))
+                    .or_insert(HashMap::new());
+                    *entry.entry(base).or_insert(0) += 1;
                 }
             }
             else {
+                if chrom == bed_chrom && vcf_pos  >= start_pos && vcf_pos < end_pos {
+                    base_pos = *vcf_pos;
+                    let base = char::from(sequence.as_bytes()[(base_pos - start_pos) as usize]).to_string();
+                    let entry = position_counts
+                    .entry((chrom.clone(), *vcf_pos, "r_0"))
+                    .or_insert(HashMap::new());
+                    *entry.entry(base).or_insert(0) += 1;
+                }
                 if chrom == bed_chrom && (vcf_pos + 1) >= *start_pos && (vcf_pos + 1) < *end_pos {
                     base_pos = *vcf_pos + 1;
-                    println!("{:?}", start_pos);
-                    
+                    let base = char::from(sequence.as_bytes()[(base_pos - start_pos) as usize]).to_string();
                     let entry = position_counts
-                    .entry((chrom.clone(), *vcf_pos, *read_dir))
+                    .entry((chrom.clone(), *vcf_pos, "r_1"))
                     .or_insert(HashMap::new());
-                    *entry.entry(sequence.as_bytes()[(base_pos - start_pos) as usize] as char).or_insert(0) += 1;
+                    *entry.entry(base).or_insert(0) += 1;
                 }
 
             }
@@ -106,7 +121,7 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
     Ok(position_counts)
 }
 
-pub fn write_pos_to_bases(output: Option<PathBuf>, position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>>) -> Result<()>{
+pub fn write_pos_to_bases(output: Option<PathBuf>, position_counts: BTreeMap<(String, u32, &str), HashMap<String, u32>>) -> Result<()>{
     let output_file = File::create(output.unwrap()).with_context(|| format!("error opening BCF writer"))?;
     let mut writer = BufWriter::new(output_file);
 
@@ -118,7 +133,7 @@ pub fn write_pos_to_bases(output: Option<PathBuf>, position_counts: BTreeMap<(St
             "{}	{}	{}	",
             reference_name, position, direction
         )?;
-        write!(&mut writer, "{}	{}	{}	{}	{}", counts.get(&'A').unwrap_or(&0), counts.get(&'C').unwrap_or(&0), counts.get(&'G').unwrap_or(&0), counts.get(&'T').unwrap_or(&0), counts.get(&'N').unwrap_or(&0))?;
+        write!(&mut writer, "{}	{}	{}	{}	{}", counts.get("A").unwrap_or(&0), counts.get("C").unwrap_or(&0), counts.get("G").unwrap_or(&0), counts.get("T").unwrap_or(&0), counts.get("N").unwrap_or(&0))?;
         writeln!(&mut writer)?;
     }
     Ok(())

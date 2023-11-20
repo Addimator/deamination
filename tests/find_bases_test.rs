@@ -19,20 +19,31 @@ fn cleanup_file(f: &str) {
 
 
 
-fn get_true_counts_complete(direction: &str) -> BTreeMap<(String, u32, char), HashMap<char, u32>> {
-    let mut true_bases: BTreeMap<(String, u32, char), HashMap<char, u32>> = BTreeMap::new();
+fn get_true_counts_complete(direction: &str) -> BTreeMap<(String, u32, &str), HashMap<String, u32>> {
+    let mut true_bases: BTreeMap<(String, u32, &str), HashMap<String, u32>> = BTreeMap::new();
     
-    if direction != "r" {
+    if direction.contains("f0") {
         let mut value = HashMap::new();
-        value.insert('T', 1);
-        value.insert('C', 1);
-        true_bases.insert(("21".to_string(), 7, 'f'), value);
+        value.insert("T".to_string(), 1);
+        value.insert("C".to_string(), 1);
+        true_bases.insert(("21".to_string(), 7, "f_0"), value);
     }
-    if direction != "f" {
+    if direction.contains("f1") {
+
         let mut value = HashMap::new();
-        value.insert('G', 1);
-        value.insert('A', 1);
-        true_bases.insert(("21".to_string(), 7, 'r'), value);
+        value.insert('G'.to_string(), 2);
+        true_bases.insert(("21".to_string(), 7, "f_1"), value);
+    }
+    if direction.contains("r1") {
+        let mut value = HashMap::new();
+        value.insert('G'.to_string(), 1);
+        value.insert('A'.to_string(), 1);
+        true_bases.insert(("21".to_string(), 7, "r_1"), value);
+    }
+    if direction.contains("r0") {
+        let mut value = HashMap::new();
+        value.insert('C'.to_string(), 2);
+        true_bases.insert(("21".to_string(), 7, "r_0"), value);
     }
     true_bases
 }
@@ -54,7 +65,7 @@ fn extract_vcf_positions(test: &str) -> Result<()> {
     Ok(())
 }
 
-fn count_bases_in_reads(test: &str, alignment_file: &str, true_position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>>) -> Result<()> {
+fn count_bases_in_reads(test: &str, alignment_file: &str, true_position_counts: BTreeMap<(String, u32, &str), HashMap<String, u32>>) -> Result<()> {
     let true_candidates = vec![("21".to_string(), 7)];
     let basedir = basedir(test);
     // let output = format!("{}/candidates.bcf", basedir);
@@ -80,7 +91,7 @@ fn read_invalid() -> Result<()> {
     Ok(())
 }
 
-fn write_pos_to_bases(test: &str, position_counts: BTreeMap<(String, u32, char), HashMap<char, u32>>) -> Result<()> {
+fn write_pos_to_bases(test: &str, position_counts: BTreeMap<(String, u32, &str), HashMap<String, u32>>) -> Result<()> {
     let basedir = basedir(test);
 
     // Read true output file and get its content
@@ -119,7 +130,7 @@ fn test_extract_vcf_positions() -> Result<()> {
 
 #[test]
 fn test_count_bases_mid() -> Result<()> {
-    let true_bases = get_true_counts_complete("fr");
+    let true_bases = get_true_counts_complete("f0f1r0r1");
     count_bases_in_reads("find_bases", "alignment_mid_c", true_bases)?;
     Ok(())
 }
@@ -127,7 +138,7 @@ fn test_count_bases_mid() -> Result<()> {
 
 #[test]
 fn test_count_bases_starting_c() -> Result<()> {
-    let true_bases = get_true_counts_complete("fr");
+    let true_bases = get_true_counts_complete("f0f1r0r1");
     count_bases_in_reads("find_bases", "alignment_start_c", true_bases)?;
     Ok(())
 }
@@ -135,7 +146,7 @@ fn test_count_bases_starting_c() -> Result<()> {
 
 #[test]
 fn test_count_bases_starting_g() -> Result<()> {
-    let true_bases = get_true_counts_complete("r");
+    let true_bases = get_true_counts_complete("r1f1");
     count_bases_in_reads("find_bases", "alignment_start_g", true_bases)?;
     Ok(())
 }
@@ -143,14 +154,14 @@ fn test_count_bases_starting_g() -> Result<()> {
 
 #[test]
 fn test_count_bases_ending_c() -> Result<()> {
-    let true_bases = get_true_counts_complete("f");
+    let true_bases = get_true_counts_complete("f0r0");
     count_bases_in_reads("find_bases", "alignment_end_c", true_bases)?;
     Ok(())
 }
 
 #[test]
 fn test_count_bases_ending_g() -> Result<()> {
-    let true_bases = get_true_counts_complete("fg");
+    let true_bases = get_true_counts_complete("f0f1r0r1");
 
     count_bases_in_reads("find_bases", "alignment_end_g", true_bases)?;
     Ok(())
@@ -164,7 +175,7 @@ fn test_read_invalid() -> Result<()> {
 
 #[test]
 fn test_write_pos_to_bases() -> Result<()> {
-    let true_bases = get_true_counts_complete("fg");
+    let true_bases = get_true_counts_complete("f0f1r0r1");
 
     write_pos_to_bases("find_bases", true_bases)?;
     Ok(())

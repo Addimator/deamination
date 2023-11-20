@@ -17,75 +17,112 @@ fn cleanup_file(f: &str) {
     }
 }
 
-fn create_true_baseline_maps() -> Result<(HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>)> {
-    let mut forward_baseline_map = HashMap::new();
-    let mut reverse_baseline_map = HashMap::new();
-    forward_baseline_map.insert(("21".to_string(), 7), vec!["0".to_string(), "1".to_string(), "0".to_string(), "1".to_string(), "0".to_string()]);
-    reverse_baseline_map.insert(("21".to_string(), 7), vec!["0".to_string(), "0".to_string(), "1".to_string(), "0".to_string(), "0".to_string()]);
-    Ok((forward_baseline_map, reverse_baseline_map))
+fn create_true_baseline_maps() -> Result<(HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>)> {
+    let mut forward_baseline_map_0 = HashMap::new();
+    let mut forward_baseline_map_1 = HashMap::new();
+    let mut reverse_baseline_map_0 = HashMap::new();
+    let mut reverse_baseline_map_1 = HashMap::new();
+    forward_baseline_map_0.insert(("21".to_string(), 7), vec!["0".to_string(), "1".to_string(), "0".to_string(), "1".to_string(), "0".to_string()]);
+    forward_baseline_map_1.insert(("21".to_string(), 7), vec!["0".to_string(), "0".to_string(), "2".to_string(), "0".to_string(), "0".to_string()]);
+    reverse_baseline_map_0.insert(("21".to_string(), 7), vec!["0".to_string(), "2".to_string(), "0".to_string(), "0".to_string(), "0".to_string()]);
+    reverse_baseline_map_1.insert(("21".to_string(), 7), vec!["1".to_string(), "0".to_string(), "1".to_string(), "0".to_string(), "0".to_string()]);
+    Ok((forward_baseline_map_0, forward_baseline_map_1, reverse_baseline_map_0, reverse_baseline_map_1))
 }
 
-fn create_true_position_maps() -> Result<(HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>)>{
-    let meth_pos_forward = HashMap::new();
-    let meth_pos_reverse = HashMap::new();
-    let mut unmeth_pos_forward = HashMap::new();
-    let mut unmeth_pos_reverse = HashMap::new();
-    
+fn create_true_position_maps() -> Result<(HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>, HashMap<String, BTreeMap<char, usize>>)>{
+    let meth_pos_forward_0 = HashMap::new();
+    let meth_pos_reverse_0 = HashMap::new();
+    let mut unmeth_pos_forward_0 = HashMap::new();
+    let mut unmeth_pos_reverse_0 = HashMap::new();
+    let meth_pos_forward_1 = HashMap::new();
+    let meth_pos_reverse_1 = HashMap::new();
+    let mut unmeth_pos_forward_1 = HashMap::new();
+    let mut unmeth_pos_reverse_1 = HashMap::new();
+
+
     let inner_unmeth_pos_forward = [('A', 0), ('C', 1), ('G', 0), ('T', 1),  ('N', 0)].iter().cloned().collect();
-    unmeth_pos_forward.insert("21".to_string(), inner_unmeth_pos_forward);
-    let inner_unmeth_pos_reverse = [('A', 0), ('C', 0), ('G', 1), ('T', 0),  ('N', 0)].iter().cloned().collect();
-    unmeth_pos_reverse.insert("21".to_string(), inner_unmeth_pos_reverse);
-    Ok((meth_pos_forward, meth_pos_reverse, unmeth_pos_forward, unmeth_pos_reverse))
+    unmeth_pos_forward_0.insert("21".to_string(), inner_unmeth_pos_forward);
+    let inner_unmeth_pos_forward = [('A', 0), ('C', 0), ('G', 2), ('T', 0),  ('N', 0)].iter().cloned().collect();
+    unmeth_pos_forward_1.insert("21".to_string(), inner_unmeth_pos_forward);
+    let inner_unmeth_pos_reverse = [('A', 0), ('C', 2), ('G', 0), ('T', 0),  ('N', 0)].iter().cloned().collect();
+    unmeth_pos_reverse_0.insert("21".to_string(), inner_unmeth_pos_reverse);
+    let inner_unmeth_pos_reverse = [('A', 1), ('C', 0), ('G', 1), ('T', 0),  ('N', 0)].iter().cloned().collect();
+    unmeth_pos_reverse_1.insert("21".to_string(), inner_unmeth_pos_reverse);
+    Ok((meth_pos_forward_0, meth_pos_reverse_0, unmeth_pos_forward_0, unmeth_pos_reverse_0, meth_pos_forward_1, meth_pos_reverse_1, unmeth_pos_forward_1, unmeth_pos_reverse_1))
 
 }
 
 
 
 fn read_bases_file(test: &str) -> Result<()> {
-    let (forward_baseline_map_true, reverse_baseline_map_true) = create_true_baseline_maps().with_context(|| format!("error computing true baseline maps"))?; 
+    let (forward_baseline_map_true_0, forward_baseline_map_true_1, reverse_baseline_map_true_0, reverse_baseline_map_true_1) = create_true_baseline_maps().with_context(|| format!("error computing true baseline maps"))?; 
     let basedir = basedir(test);
-    let (forward_baseline_map, reverse_baseline_map) = deamination::assign_bases::read_bases_file(
+    let (forward_baseline_map_0, forward_baseline_map_1, reverse_baseline_map_0, reverse_baseline_map_1) = deamination::assign_bases::read_bases_file(
         PathBuf::from(format!("{}/pos_to_bases.txt", basedir))
     ).with_context(|| format!("error computing baseline maps"))?;
     assert_eq!(
-        forward_baseline_map,
-        forward_baseline_map_true
+        forward_baseline_map_0,
+        forward_baseline_map_true_0
     );
     assert_eq!(
-        reverse_baseline_map,
-        reverse_baseline_map_true
+        forward_baseline_map_1,
+        forward_baseline_map_true_1
+    );
+    assert_eq!(
+        reverse_baseline_map_0,
+        reverse_baseline_map_true_0
+    );
+    assert_eq!(
+        reverse_baseline_map_1,
+        reverse_baseline_map_true_1
     );
     Ok(())
 }
 
 
 fn process_bedgraph_data(test: &str) -> Result<()> {
-    let (meth_pos_forward_true, meth_pos_reverse_true, unmeth_pos_forward_true, unmeth_pos_reverse_true) = create_true_position_maps().with_context(|| format!("error computing true baseline maps"))?;
+    let (meth_pos_forward_0_true, meth_pos_reverse_0_true, unmeth_pos_forward_0_true, unmeth_pos_reverse_0_true, meth_pos_forward_1_true, meth_pos_reverse_1_true, unmeth_pos_forward_1_true, unmeth_pos_reverse_1_true) = create_true_position_maps().with_context(|| format!("error computing true baseline maps"))?;
     
-    let (forward_baseline_map, reverse_baseline_map) = create_true_baseline_maps().with_context(|| format!("error computing true baseline maps"))?; 
+    let (forward_baseline_map_true_0, forward_baseline_map_true_1, reverse_baseline_map_true_0, reverse_baseline_map_true_1) = create_true_baseline_maps().with_context(|| format!("error computing true baseline maps"))?; 
     let basedir = basedir(test);
-    let (meth_pos_forward, meth_pos_reverse, unmeth_pos_forward, unmeth_pos_reverse) = deamination::assign_bases::process_bedgraph_data(PathBuf::from(format!("{}/avg_bed_graph.bedGraph", basedir)), &forward_baseline_map, &reverse_baseline_map)?;
+    let (meth_pos_forward_0, meth_pos_reverse_0, unmeth_pos_forward_0, unmeth_pos_reverse_0, meth_pos_forward_1, meth_pos_reverse_1, unmeth_pos_forward_1, unmeth_pos_reverse_1) = deamination::assign_bases::process_bedgraph_data(PathBuf::from(format!("{}/avg_bed_graph.bedGraph", basedir)), &forward_baseline_map_true_0, &forward_baseline_map_true_1, &reverse_baseline_map_true_0, &reverse_baseline_map_true_1)?;
 
     assert_eq!(
-        meth_pos_forward_true,
-        meth_pos_forward
+        meth_pos_forward_0_true,
+        meth_pos_forward_0
     );
     assert_eq!(
-        meth_pos_reverse_true,
-        meth_pos_reverse
+        meth_pos_forward_1_true,
+        meth_pos_forward_1
+    );      
+    assert_eq!(
+        unmeth_pos_forward_0_true,
+        unmeth_pos_forward_0
+    );
+    assert_eq!(
+        unmeth_pos_forward_1_true,
+        unmeth_pos_forward_1
+    );  
+    assert_eq!(
+        meth_pos_reverse_0_true,
+        meth_pos_reverse_0            
     );    
     assert_eq!(
-        unmeth_pos_forward_true,
-        unmeth_pos_forward
+        meth_pos_reverse_1_true,
+        meth_pos_reverse_1
+    );  
+    assert_eq!(
+        unmeth_pos_reverse_0_true,
+        unmeth_pos_reverse_0            
     );    
     assert_eq!(
-        unmeth_pos_reverse_true,
-        unmeth_pos_reverse
+        unmeth_pos_reverse_1_true,
+        unmeth_pos_reverse_1
     );
     Ok(())
 }
 
-pub fn write_pos_to_bases(test: &str, meth_pos_forward:HashMap<String, BTreeMap<char, usize>>, meth_pos_reverse:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_forward:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_reverse: HashMap<String, BTreeMap<char, usize>>) -> Result<()>{
+pub fn write_pos_to_bases(test: &str, meth_pos_forward_0:HashMap<String, BTreeMap<char, usize>>, meth_pos_reverse_0:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_forward_0:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_reverse_0: HashMap<String, BTreeMap<char, usize>>, meth_pos_forward_1:HashMap<String, BTreeMap<char, usize>>, meth_pos_reverse_1:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_forward_1:HashMap<String, BTreeMap<char, usize>>, unmeth_pos_reverse_1: HashMap<String, BTreeMap<char, usize>>) -> Result<()>{
     let basedir = basedir(test);
 
     // Read true output file and get its content
@@ -99,7 +136,7 @@ pub fn write_pos_to_bases(test: &str, meth_pos_forward:HashMap<String, BTreeMap<
     let output = format!("{}/output_test.txt", basedir);
     cleanup_file(&output);
     deamination::assign_bases::write_assigned_bases(
-        Some(PathBuf::from(output.clone())),  meth_pos_forward, meth_pos_reverse, unmeth_pos_forward, unmeth_pos_reverse
+        Some(PathBuf::from(output.clone())),  meth_pos_forward_0, meth_pos_reverse_0, unmeth_pos_forward_0, unmeth_pos_reverse_0, meth_pos_forward_1, meth_pos_reverse_1, unmeth_pos_forward_1, unmeth_pos_reverse_1
     )
     .with_context(|| format!("error computing the position counts"))?;
     
@@ -127,8 +164,8 @@ fn test_process_bedgraph_data() -> Result<()> {
 
 #[test]
 fn test_write_pos_to_bases() -> Result<()> {
-    let (meth_pos_forward, meth_pos_reverse, unmeth_pos_forward, unmeth_pos_reverse) = create_true_position_maps().with_context(|| format!("error computing true baseline maps"))?;
+    let (meth_pos_forward_0, meth_pos_reverse_0, unmeth_pos_forward_0, unmeth_pos_reverse_0, meth_pos_forward_1, meth_pos_reverse_1, unmeth_pos_forward_1, unmeth_pos_reverse_1) = create_true_position_maps().with_context(|| format!("error computing true baseline maps"))?;
 
-    write_pos_to_bases("assign_bases", meth_pos_forward, meth_pos_reverse, unmeth_pos_forward, unmeth_pos_reverse)?;
+    write_pos_to_bases("assign_bases", meth_pos_forward_0, meth_pos_reverse_0, unmeth_pos_forward_0, unmeth_pos_reverse_0, meth_pos_forward_1, meth_pos_reverse_1, unmeth_pos_forward_1, unmeth_pos_reverse_1)?;
     Ok(())
 }
