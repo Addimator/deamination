@@ -41,7 +41,8 @@ read_bases_file(bases_file_path: PathBuf) -> Result<(HashMap<(String, usize), Ve
         } 
         if direction == "r_0" {
             reverse_baseline_map_0.insert((chrom.clone(), position), base_fields[3..].to_vec());
-        } else {
+        } 
+        if direction == "r_1" {
             reverse_baseline_map_1.insert((chrom.clone(), position), base_fields[3..].to_vec());
         }
 
@@ -164,16 +165,26 @@ pub fn write_assigned_bases(output: Option<PathBuf>, meth_pos_forward_0:HashMap<
     };
 
 
-    writeln!(writer, "meth_pos_forward: {:?}", meth_pos_forward_0)?;
-    writeln!(writer, "meth_pos_reverse: {:?}", meth_pos_reverse_0)?;
-    writeln!(writer, "unmeth_pos_forward: {:?}", unmeth_pos_forward_0)?;
-    writeln!(writer, "unmeth_pos_reverse: {:?}", unmeth_pos_reverse_0)?;
-    writeln!(writer, "meth_pos_forward: {:?}", meth_pos_forward_1)?;
-    writeln!(writer, "meth_pos_reverse: {:?}", meth_pos_reverse_1)?;
-    writeln!(writer, "unmeth_pos_forward: {:?}", unmeth_pos_forward_1)?;
-    writeln!(writer, "unmeth_pos_reverse: {:?}", unmeth_pos_reverse_1)?;
+    writeln!(writer, "meth_pos_forward Pos 0: {:?}", meth_pos_forward_0)?;
+    writeln!(writer, "meth_pos_reverse Pos 0: {:?}", meth_pos_reverse_0)?;
+    writeln!(writer, "unmeth_pos_forward Pos 0: {:?}", unmeth_pos_forward_0)?;
+    writeln!(writer, "unmeth_pos_reverse Pos 0: {:?}", unmeth_pos_reverse_0)?;
+    writeln!(writer, "meth_pos_forward Pos 1: {:?}", meth_pos_forward_1)?;
+    writeln!(writer, "meth_pos_reverse Pos 1: {:?}", meth_pos_reverse_1)?;
+    writeln!(writer, "unmeth_pos_forward Pos 1: {:?}", unmeth_pos_forward_1)?;
+    writeln!(writer, "unmeth_pos_reverse Pos 1: {:?}", unmeth_pos_reverse_1)?;
     writeln!(writer)?;
 
+
+    // writeln!(writer, "meth_pos_forward Pos 0: {:?}, Sum: {:?}", meth_pos_forward_0, meth_pos_forward_0.values().sum())?;
+    // writeln!(writer, "meth_pos_reverse Pos 0: {:?}, Sum: {:?}", meth_pos_reverse_0, meth_pos_reverse_0.values().sum())?;
+    // writeln!(writer, "unmeth_pos_forward Pos 0: {:?}, Sum: {:?}", unmeth_pos_forward_0, unmeth_pos_forward_0.values().sum())?;
+    // writeln!(writer, "unmeth_pos_reverse Pos 0: {:?}, Sum: {:?}", unmeth_pos_reverse_0, unmeth_pos_reverse_0.values().sum())?;
+    // writeln!(writer, "meth_pos_forward Pos 1: {:?}, Sum: {:?}", meth_pos_forward_1, meth_pos_forward_1.values().sum())?;
+    // writeln!(writer, "meth_pos_reverse Pos 1: {:?}, Sum: {:?}", meth_pos_reverse_1, meth_pos_reverse_1.values().sum())?;
+    // writeln!(writer, "unmeth_pos_forward Pos 1: {:?}, Sum: {:?}", unmeth_pos_forward_1, unmeth_pos_forward_1.values().sum())?;
+    // writeln!(writer, "unmeth_pos_reverse Pos 1: {:?}, Sum: {:?}", unmeth_pos_reverse_1, unmeth_pos_reverse_1.values().sum())?;
+    // writeln!(writer)?;
     // Erstelle ein HashSet, um Schlüssel ohne Wiederholungen zu speichern
     let mut unique_keys: HashSet<String> = HashSet::new();
 
