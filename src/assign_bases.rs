@@ -7,12 +7,8 @@ use anyhow::{Result, Context};
 use std::io::prelude::*;
 use std::collections::HashSet;
 
-
-
-
-pub fn 
-
-read_bases_file(bases_file_path: PathBuf) -> Result<(HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>)> {
+/// Computes for the different positions f_0, r_0, f_1, r_1 the respective number of bases at these positions
+pub fn read_bases_file(bases_file_path: PathBuf) -> Result<(HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>, HashMap<(String, usize), Vec<String>>)> {
     let mut forward_baseline_map_0: HashMap<(String, usize), Vec<String>> = HashMap::new();
     let mut forward_baseline_map_1: HashMap<(String, usize), Vec<String>> = HashMap::new();
     let mut reverse_baseline_map_0: HashMap<(String, usize), Vec<String>> = HashMap::new();
@@ -85,7 +81,7 @@ pub fn process_bedgraph_data(bed_graph_path: PathBuf, forward_baseline_map_0: &H
 
         if forward_baseline_map_0.contains_key(&(chrom.clone(), position[1])) {
             let bases_fields_forward = &forward_baseline_map_0[&(chrom.clone(), position[1])];
-            if methylation > 20.0 {
+            if methylation > 0.0 {
                 update_base_counts(&mut meth_pos_forward_0, chrom.clone(), bases_fields_forward.to_vec());
             } else {
                 update_base_counts(&mut unmeth_pos_forward_0, chrom.clone(), bases_fields_forward.to_vec());
@@ -93,7 +89,7 @@ pub fn process_bedgraph_data(bed_graph_path: PathBuf, forward_baseline_map_0: &H
         }
         if forward_baseline_map_1.contains_key(&(chrom.clone(), position[1])) {
             let bases_fields_forward = &forward_baseline_map_1[&(chrom.clone(), position[1])];
-            if methylation > 20.0 {
+            if methylation > 0.0 {
                 update_base_counts(&mut meth_pos_forward_1, chrom.clone(), bases_fields_forward.to_vec());
             } else {
                 update_base_counts(&mut unmeth_pos_forward_1, chrom.clone(), bases_fields_forward.to_vec());
@@ -101,7 +97,7 @@ pub fn process_bedgraph_data(bed_graph_path: PathBuf, forward_baseline_map_0: &H
         }
         if reverse_baseline_map_0.contains_key(&(chrom.clone(), position[0])) {
             let bases_fields_reverse = &reverse_baseline_map_0[&(chrom.clone(), position[0])];
-            if methylation > 20.0 {
+            if methylation > 0.0 {
                 update_base_counts(&mut meth_pos_reverse_0, chrom.clone(), bases_fields_reverse.to_vec());
             } else {
                 update_base_counts(&mut unmeth_pos_reverse_0, chrom.clone(), bases_fields_reverse.to_vec());
@@ -109,7 +105,7 @@ pub fn process_bedgraph_data(bed_graph_path: PathBuf, forward_baseline_map_0: &H
         }
         if reverse_baseline_map_1.contains_key(&(chrom.clone(), position[0])) {
             let bases_fields_reverse = &reverse_baseline_map_1[&(chrom.clone(), position[0])];
-            if methylation > 20.0 {
+            if methylation > 0.0 {
                 update_base_counts(&mut meth_pos_reverse_1, chrom.clone(), bases_fields_reverse.to_vec());
             } else {
                 update_base_counts(&mut unmeth_pos_reverse_1, chrom.clone(), bases_fields_reverse.to_vec());
@@ -174,18 +170,7 @@ pub fn write_assigned_bases(output: Option<PathBuf>, meth_pos_forward_0:HashMap<
     writeln!(writer, "unmeth_pos_forward Pos 1: {:?}", unmeth_pos_forward_1)?;
     writeln!(writer, "unmeth_pos_reverse Pos 1: {:?}", unmeth_pos_reverse_1)?;
     writeln!(writer)?;
-
-
-    // writeln!(writer, "meth_pos_forward Pos 0: {:?}, Sum: {:?}", meth_pos_forward_0, meth_pos_forward_0.values().sum())?;
-    // writeln!(writer, "meth_pos_reverse Pos 0: {:?}, Sum: {:?}", meth_pos_reverse_0, meth_pos_reverse_0.values().sum())?;
-    // writeln!(writer, "unmeth_pos_forward Pos 0: {:?}, Sum: {:?}", unmeth_pos_forward_0, unmeth_pos_forward_0.values().sum())?;
-    // writeln!(writer, "unmeth_pos_reverse Pos 0: {:?}, Sum: {:?}", unmeth_pos_reverse_0, unmeth_pos_reverse_0.values().sum())?;
-    // writeln!(writer, "meth_pos_forward Pos 1: {:?}, Sum: {:?}", meth_pos_forward_1, meth_pos_forward_1.values().sum())?;
-    // writeln!(writer, "meth_pos_reverse Pos 1: {:?}, Sum: {:?}", meth_pos_reverse_1, meth_pos_reverse_1.values().sum())?;
-    // writeln!(writer, "unmeth_pos_forward Pos 1: {:?}, Sum: {:?}", unmeth_pos_forward_1, unmeth_pos_forward_1.values().sum())?;
-    // writeln!(writer, "unmeth_pos_reverse Pos 1: {:?}, Sum: {:?}", unmeth_pos_reverse_1, unmeth_pos_reverse_1.values().sum())?;
-    // writeln!(writer)?;
-    // Erstelle ein HashSet, um Schlüssel ohne Wiederholungen zu speichern
+        // Erstelle ein HashSet, um Schlüssel ohne Wiederholungen zu speichern
     let mut unique_keys: HashSet<String> = HashSet::new();
 
     // Füge die Schlüssel aus allen HashMaps zum HashSet hinzu

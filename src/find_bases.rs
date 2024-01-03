@@ -140,24 +140,10 @@ pub fn write_pos_to_bases(output: Option<PathBuf>, position_counts: BTreeMap<(St
 }
 
 pub fn read_reverse_strand(flag:u16) -> bool {
-    let read_paired = 0b1;
-    let read_mapped_porper_pair = 0b01;
+
     let read_reverse = 0b10000;
-    let mate_reverse = 0b100000;
-    let first_in_pair = 0b1000000;
-    let second_in_pair = 0b10000000;
-    if (flag & read_paired) != 0 && (flag & read_mapped_porper_pair) != 0 {
-        if (flag & read_reverse) != 0 && (flag & first_in_pair) != 0 {
-            return true
-        }
-        else if (flag & mate_reverse) != 0 && (flag & second_in_pair) != 0 {
-            return true
-        }
-    }
-    else {
-        if (flag & read_reverse) != 0 {
-            return true
-        }
+    if (flag & read_reverse) != 0 {
+        return true
     }
     false
     // read.inner.core.flag == 163 || read.inner.core.flag == 83 || read.inner.core.flag == 16
