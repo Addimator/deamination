@@ -181,10 +181,30 @@ pub fn write_assigned_bases(output: Option<PathBuf>, meth_pos_forward_0:HashMap<
     }
 
     for chrom in unique_keys {
-        writeln!(writer, "0: Methylated positions \n\tTs in forward string: {} \n\tAs in reverse String: {}", bases_percentage(&meth_pos_forward_0, &chrom, 'T'), bases_percentage(&meth_pos_reverse_0, &chrom, 'A'))?;
-        writeln!(writer, "1: Methylated positions \n\tTs in forward string: {} \n\tAs in reverse String: {}", bases_percentage(&meth_pos_forward_1, &chrom, 'T'), bases_percentage(&meth_pos_reverse_1, &chrom, 'A'))?;
-        writeln!(writer, "0: Unmethylated positions \n\tTs in forward string: {} \n\tAs in reverse String: {}", bases_percentage(&unmeth_pos_forward_0, &chrom, 'T'), bases_percentage(&unmeth_pos_reverse_0, &chrom, 'A'))?;
-        writeln!(writer, "1: Unmethylated positions \n\tTs in forward string: {} \n\tAs in reverse String: {}", bases_percentage(&unmeth_pos_forward_1, &chrom, 'T'), bases_percentage(&unmeth_pos_reverse_1, &chrom, 'A'))?;
+        writeln!(writer, 
+            "0: Methylated positions
+            As in forward string: {} \tCs in forward string: {} \tGs in forward string: {} \tTs IN FORWARD STRING: {}
+            As in reverse String: {} \tCs in reverse String: {} \tGs in reverse String: {} \tTs in reverse String: {}", 
+            bases_percentage(&meth_pos_forward_0, &chrom, 'A'), bases_percentage(&meth_pos_forward_0, &chrom, 'C'), bases_percentage(&meth_pos_forward_0, &chrom, 'G'), bases_percentage(&meth_pos_forward_0, &chrom, 'T'), 
+            bases_percentage(&meth_pos_reverse_0, &chrom, 'A'), bases_percentage(&meth_pos_reverse_0, &chrom, 'C'), bases_percentage(&meth_pos_reverse_0, &chrom, 'G'), bases_percentage(&meth_pos_reverse_0, &chrom, 'T'))?;
+        writeln!(writer, 
+            "1: Methylated positions
+            As in forward string: {} \tCs in forward string: {} \tGs in forward string: {} \tTs in forward string: {}
+            As IN REVERSE STRING: {} \tCs in reverse String: {} \tGs in reverse String: {} \tTs in reverse String: {}", 
+            bases_percentage(&meth_pos_forward_1, &chrom, 'A'), bases_percentage(&meth_pos_forward_1, &chrom, 'C'), bases_percentage(&meth_pos_forward_1, &chrom, 'G'), bases_percentage(&meth_pos_forward_1, &chrom, 'T'), 
+            bases_percentage(&meth_pos_reverse_1, &chrom, 'A'), bases_percentage(&meth_pos_reverse_1, &chrom, 'C'), bases_percentage(&meth_pos_reverse_1, &chrom, 'G'), bases_percentage(&meth_pos_reverse_1, &chrom, 'T'))?;
+        writeln!(writer, 
+            "0: Unmethylated positions
+            As in forward string: {} \tCs in forward string: {} \tGs in forward string: {} \tTs IN FORWARD STRING: {}
+            As in reverse String: {} \tCs in reverse String: {} \tGs in reverse String: {} \tTs in reverse String: {}", 
+            bases_percentage(&unmeth_pos_forward_0, &chrom, 'A'), bases_percentage(&unmeth_pos_forward_0, &chrom, 'C'), bases_percentage(&unmeth_pos_forward_0, &chrom, 'G'), bases_percentage(&unmeth_pos_forward_0, &chrom, 'T'), 
+            bases_percentage(&unmeth_pos_reverse_0, &chrom, 'A'), bases_percentage(&unmeth_pos_reverse_0, &chrom, 'C'), bases_percentage(&unmeth_pos_reverse_0, &chrom, 'G'), bases_percentage(&unmeth_pos_reverse_0, &chrom, 'T'))?;
+        writeln!(writer, 
+            "1: Unmethylated positions
+            As in forward string: {} \tCs in forward string: {} \tGs in forward string: {} \tTs in forward string: {}
+            As IN REVERSE STRING: {} \tCs in reverse String: {} \tGs in reverse String: {} \tTs in reverse String: {}", 
+            bases_percentage(&unmeth_pos_forward_1, &chrom, 'A'), bases_percentage(&unmeth_pos_forward_1, &chrom, 'C'), bases_percentage(&unmeth_pos_forward_1, &chrom, 'G'), bases_percentage(&unmeth_pos_forward_1, &chrom, 'T'), 
+            bases_percentage(&unmeth_pos_reverse_1, &chrom, 'A'), bases_percentage(&unmeth_pos_reverse_1, &chrom, 'C'), bases_percentage(&unmeth_pos_reverse_1, &chrom, 'G'), bases_percentage(&unmeth_pos_reverse_1, &chrom, 'T'))?;
     }
     Ok(())
 }
