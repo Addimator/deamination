@@ -1,9 +1,14 @@
 use std::collections::{HashMap, BTreeMap};
 use std::fs::File;
-use std::hash::Hash;
 use std::io::{BufReader, BufRead, Write, BufWriter};
 use std::path::PathBuf;
 use anyhow::{Context, Result};
+use regex::Regex;
+
+fn is_only_matches(cigar: &str) -> bool {
+    let re = Regex::new(r"^(\d+M)+$").unwrap();
+    re.is_match(cigar)
+}
 
 
 /// Extracts all the CpG positions in a vcf to a vector
@@ -65,8 +70,9 @@ pub fn count_bases_in_reads(sam_file_path: PathBuf, vcf_positions: &Vec<(String,
         let flag = fields[1].parse::<u16>().unwrap();
         let chrom = fields[2].to_string();
         let position = fields[3].parse::<u32>().unwrap();
+        let cigar = fields[5].to_string();
         let sequence = fields[9].to_string();
-        if read_invalid(flag) {
+        if read_invalid(flag) || !is_only_matches(&cigar) {
             continue;
         }
         let reverse_read = read_reverse_strand(flag);

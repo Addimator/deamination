@@ -9,6 +9,7 @@ edition = "2021"
 structopt = "0.3"  # Verwenden Sie die entsprechende Version von structopt
 anyhow = "1.0"
 rust-htslib = "0.43.1"
+regex = "1.5.4"
 
 
 [profile.release]
