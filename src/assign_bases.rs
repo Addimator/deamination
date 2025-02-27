@@ -78,33 +78,34 @@ pub fn process_bedgraph_data(bed_graph_path: PathBuf, forward_baseline_map_0: &H
         };
         let position = [bed_fields[1].parse::<usize>().context("Invalid position value")?, bed_fields[2].parse::<usize>().context("Invalid position value")?];
         let methylation = bed_fields[3].parse::<f64>().context("Invalid methylation value")?;
+        
+        if forward_baseline_map_0.contains_key(&(chrom.clone(), position[1] - 1)) {
 
-        if forward_baseline_map_0.contains_key(&(chrom.clone(), position[1])) {
-            let bases_fields_forward = &forward_baseline_map_0[&(chrom.clone(), position[1])];
+            let bases_fields_forward = &forward_baseline_map_0[&(chrom.clone(), position[1] - 1)];
             if methylation > 0.0 {
                 update_base_counts(&mut meth_pos_forward_0, chrom.clone(), bases_fields_forward.to_vec());
             } else {
                 update_base_counts(&mut unmeth_pos_forward_0, chrom.clone(), bases_fields_forward.to_vec());
             }
         }
-        if forward_baseline_map_1.contains_key(&(chrom.clone(), position[1])) {
-            let bases_fields_forward = &forward_baseline_map_1[&(chrom.clone(), position[1])];
+        if forward_baseline_map_1.contains_key(&(chrom.clone(), position[1] - 1)) {
+            let bases_fields_forward = &forward_baseline_map_1[&(chrom.clone(), position[1] - 1)];
             if methylation > 0.0 {
                 update_base_counts(&mut meth_pos_forward_1, chrom.clone(), bases_fields_forward.to_vec());
             } else {
                 update_base_counts(&mut unmeth_pos_forward_1, chrom.clone(), bases_fields_forward.to_vec());
             }
         }
-        if reverse_baseline_map_0.contains_key(&(chrom.clone(), position[0])) {
-            let bases_fields_reverse = &reverse_baseline_map_0[&(chrom.clone(), position[0])];
+        if reverse_baseline_map_0.contains_key(&(chrom.clone(), position[0] - 1)) {
+            let bases_fields_reverse = &reverse_baseline_map_0[&(chrom.clone(), position[0] - 1)];
             if methylation > 0.0 {
                 update_base_counts(&mut meth_pos_reverse_0, chrom.clone(), bases_fields_reverse.to_vec());
             } else {
                 update_base_counts(&mut unmeth_pos_reverse_0, chrom.clone(), bases_fields_reverse.to_vec());
             }
         }
-        if reverse_baseline_map_1.contains_key(&(chrom.clone(), position[0])) {
-            let bases_fields_reverse = &reverse_baseline_map_1[&(chrom.clone(), position[0])];
+        if reverse_baseline_map_1.contains_key(&(chrom.clone(), position[0] - 1)) {
+            let bases_fields_reverse = &reverse_baseline_map_1[&(chrom.clone(), position[0] - 1)];
             if methylation > 0.0 {
                 update_base_counts(&mut meth_pos_reverse_1, chrom.clone(), bases_fields_reverse.to_vec());
             } else {

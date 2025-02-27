@@ -114,7 +114,9 @@ pub fn main() -> Result<()> {
         }
         Deamination::BaseFinder { sam_file_path, vcf_file_path, output } => {
             let vcf_positions = extract_vcf_positions(vcf_file_path)?;
+            println!("Got VCF positions!");
             let position_counts = count_bases_in_reads(sam_file_path, &vcf_positions)?;
+            println!("Got position counts!");
             write_pos_to_bases(output, position_counts)?;
         }
         Deamination::BaseAssigner { bed_graph_path, bases_file_path, output } => {
