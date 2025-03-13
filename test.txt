@@ -1,0 +1,9 @@
+direction,methylation_status,cpg_position,bases
+forward,true,0,Some({'N': 1, 'C': 310, 'T': 256})
+forward,true,1,Some({'T': 2, 'G': 554})
+forward,false,0,None
+forward,false,1,None
+reverse,true,0,Some({'A': 1, 'C': 595})
+reverse,true,1,Some({'A': 284, 'C': 1, 'G': 297, 'T': 1})
+reverse,false,0,None
+reverse,false,1,None

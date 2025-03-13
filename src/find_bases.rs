@@ -1,154 +1,173 @@
-use std::collections::{HashMap, BTreeMap};
-use std::fs::File;
-use std::io::{BufReader, BufRead, Write, BufWriter};
-use std::path::PathBuf;
+use crate::utils::{Direction, MethPos, NumberOfNucleotides, PosType, Position};
 use anyhow::{Context, Result};
-use regex::Regex;
-use rust_htslib::bam::Read as BamRead;
-use rust_htslib::{bam, bcf, bcf::Read};
 
-fn is_only_matches(cigar: &str) -> bool {
-    let re = Regex::new(r"^(\d+M)+$").unwrap();
-    re.is_match(cigar)
+use rust_htslib::bam::Record;
+use rust_htslib::bam::{self, Read};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufReader, BufWriter, Write};
+use std::path::PathBuf;
+use std::rc::Rc;
+
+use std::io::prelude::*;
+
+pub fn process_bedgraph_data(bed_graph_path: PathBuf) -> Result<Vec<MethPos>> {
+    let bedgraph_file =
+        File::open(bed_graph_path).with_context(|| "Unable to open bedGraph file.")?;
+    let bedgraph_reader = BufReader::new(bedgraph_file);
+    let mut meth_positions: Vec<MethPos> = Vec::new();
+
+    for bed_line in bedgraph_reader.lines() {
+        let bed_line = bed_line?;
+        if bed_line.starts_with("track") {
+            continue;
+        }
+        let bed_fields: Vec<&str> = bed_line.split('\t').collect();
+
+        let chrom = bed_fields[0]
+            .strip_prefix("chr")
+            .unwrap_or(bed_fields[0])
+            .to_string();
+
+        let pos = bed_fields[1]
+            .parse::<usize>()
+            .context("Invalid position value")?;
+
+        let methylation = bed_fields[3].parse().context("Invalid methylation value")?;
+        let position = MethPos::new(Position::new(chrom.clone(), pos as u32), Some(methylation));
+
+        meth_positions.push(position);
+    }
+    Ok(meth_positions)
 }
 
+pub fn get_relevant_reads(bcf_positions: &[MethPos]) -> (String, u64, u64) {
+    let chrom = bcf_positions[0].position().chrom().clone(); // Chromosom vom ersten Eintrag
+    let start = (bcf_positions[0].position().pos() - 1).saturating_sub(201) as u64; // Startposition vom ersten Element
+    let end = bcf_positions
+        .last()
+        .ok_or_else(|| anyhow::anyhow!("bcf hat keine Positionen"))
+        .map(|x| x.position().pos() + 1)
+        .unwrap()
+        .saturating_add(200) as u64; // Endposition vom letzten Element
 
-/// Extracts all the CpG positions in a vcf to a vector
-/// Input: 
-///     vcf_file_path: Path to the vcf filewith methylation candidates
-/// Output:
-///     Result<Vec<(String, u32)>>: Vector mit (Chromosom, Position) der jeweiligen CpG Positionen
-pub fn extract_vcf_positions(vcf_file_path: PathBuf) -> Result<Vec<(String, u32)>> {
-    let vcf_file = File::open(vcf_file_path)?;
-    let vcf_reader = BufReader::new(vcf_file);
-
-    let mut vcf_positions = Vec::new();
-
-    for line in vcf_reader.lines() {
-        let line = line?;
-        // println!("{:?}", line);
-        if !line.starts_with('#') {
-            // Skip comment lines
-
-            let fields: Vec<&str> = line.split('\t').collect();
-            if fields.len() >= 2 {
-                if let Ok(chrom) = fields[0].parse::<String>() {
-                    if let Ok(position) = fields[1].parse::<u32>() {
-                        vcf_positions.push((chrom, position));
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(vcf_positions)
+    // let header = bam_reader.tid(); // Kopiere den Header einmal
+    // let tid: u32 = header.tid(chrom.as_bytes()).unwrap();
+    // first pass, extend reference interval
+    // TODO: Chrom oder TID zurueckgeben?
+    (chrom, start, end)
 }
 
 /// Computes the number of different bases on the CpG positions. Different entries for reads on the forward and reverse strand.
 /// Input:
 ///     sam_file_path: Path to the alignment
-///     vcf_positions: Vector with all the CpG positions
+///     bcf_positions: Vector with all the CpG positions
 /// Output:
 ///      Result<BTreeMap<(String, u32, char), HashMap<char, u32>>>: Maps a specific position (chromosome, position, read_direction) to a map of bases to their number on this position
-pub fn count_bases_in_reads(bam_file_path: PathBuf, vcf_positions: &Vec<(String, u32)>) -> Result<BTreeMap<(String, u32, &str), HashMap<char, u32>>> {
-    let mut bam_reader = bam::IndexedReader::from_path(bam_file_path)?;
+// TODO: Test ueber unterschiedliche Chromosome hinweg
+// TODO: Hier schon MethPositions verwenden und nicht HashMaps mit Positions und Bases
+pub fn count_bases_in_reads(
+    bam_file_path: PathBuf,
+    mut bcf_positions: Vec<MethPos>,
+) -> Result<HashMap<PosType, NumberOfNucleotides>> {
+    let mut indexed_reader =
+        bam::IndexedReader::from_path(bam_file_path).context("Unable to read BAM/CRAM file.")?;
+    // let mut bam_reader = bam::RecordBuffer::new(indexed_bam, true);
 
-    // let mut bam_reader = Reader::from_path(bam_file_path)?;
-    let mut position_counts: BTreeMap<(String, u32, &str), HashMap<char, u32>> = BTreeMap::new();
-    // Initialize a HashMap to store the counts
-    let mut bed_graph_entries: HashMap<(String, u32, u32, u16, i32), (char, Vec<u8>)> = HashMap::new();
-    let mut id = 0; // We need the ID because different aligned reads can look the same
+    let mut position_counts = HashMap::new();
 
-    let chrom = vcf_positions[0].0.clone(); // Chromosom vom ersten Eintrag
-    let start = vcf_positions[0].1 - 1; // Startposition vom ersten Element
-    let end = vcf_positions
-        .last()
-        .ok_or_else(|| anyhow::anyhow!("VCF hat keine Positionen")).map(|x| x.1 + 1)?; // Endposition vom letzten Element
+    for bcf_position in bcf_positions.iter_mut() {
+        let chrom = bcf_position.position().chrom();
+        let start = *bcf_position.position().pos() as i64;
+        let end = start + 1;
 
-    let header = bam_reader.header().to_owned(); // Kopiere den Header einmal
-    let tid: u32 = header.tid(chrom.as_bytes()).unwrap();
-    // first pass, extend reference interval
-    bam_reader.fetch((tid, start, end))?;
-    for result in bam_reader.records() {
-        let record = result?;
-        let chrom = std::str::from_utf8(header.tid2name(record.tid() as u32))
-            .unwrap()
-            .to_string();
-        let position = record.pos() as u32 + 1; // BAM ist 0-basiert, VCF ist 1-basiert
-        let cigar = record.cigar().to_string();
-        let sequence = record.seq().as_bytes();
-        let flag = record.inner.core.flag;
-        if read_invalid(flag) || !is_only_matches(&cigar) {
-            continue;
+        indexed_reader.fetch((
+            indexed_reader.header().tid(chrom.as_bytes()).unwrap(),
+            start,
+            end,
+        ))?;
+
+        for record in indexed_reader.records() {
+            let record = record?;
+            insert_bases(&record, bcf_position, 0);
+            insert_bases(&record, bcf_position, 1);
         }
-
-        let reverse_read = read_reverse_strand(flag);
-        let direction = if reverse_read { 'r' } else { 'f' };
-        bed_graph_entries.insert((chrom.clone(), position, position + sequence.len() as u32, record.inner.core.flag, id), (direction, sequence));
-        id += 1;
-    }
-    // Go through all CpG positions and find the bases from the bedGraph entries
-    for (chrom, vcf_pos) in vcf_positions.iter() {
-        for ((bed_chrom, start_pos, end_pos, _flag, _id), (read_dir, sequence)) in &bed_graph_entries {
-            let mut base_pos;
-            if *read_dir == 'f' {
-                if chrom == bed_chrom && vcf_pos >= start_pos && vcf_pos < end_pos {
-                    base_pos = *vcf_pos;
-                    let base = char::from(sequence[(base_pos - start_pos) as usize]);
-                    let entry = position_counts
-                        .entry((chrom.clone(), *vcf_pos, "f_0"))
-                        .or_insert(HashMap::new());
-                        *entry.entry(base).or_insert(0) += 1;
-                }
-                if chrom == bed_chrom && (vcf_pos + 1) >= *start_pos && (vcf_pos + 1) < *end_pos {
-                    base_pos = *vcf_pos + 1;
-                    let base = char::from(sequence[(base_pos - start_pos) as usize]);
-                    let entry = position_counts
-                        .entry((chrom.clone(), *vcf_pos, "f_1"))
-                        .or_insert(HashMap::new());
-                        *entry.entry(base).or_insert(0) += 1;
-                }
-            }
-            else {
-                if chrom == bed_chrom && vcf_pos  >= start_pos && vcf_pos < end_pos {
-                    base_pos = *vcf_pos;
-                    let base = char::from(sequence[(base_pos - start_pos) as usize]);
-                    let entry = position_counts
-                        .entry((chrom.clone(), *vcf_pos, "r_0"))
-                        .or_insert(HashMap::new());
-                        *entry.entry(base).or_insert(0) += 1;
-                }
-                if chrom == bed_chrom && (vcf_pos + 1) >= *start_pos && (vcf_pos + 1) < *end_pos {
-                    base_pos = *vcf_pos + 1;
-                    let base = char::from(sequence[(base_pos - start_pos) as usize]);
-                    let entry = position_counts
-                        .entry((chrom.clone(), *vcf_pos, "r_1"))
-                        .or_insert(HashMap::new());
-                        *entry.entry(base).or_insert(0) += 1;
-                }
-
-            }
+        // Fill 8 types of methylation position hashmaps
+        for ((direction, cpg_position), value) in bcf_position.meth_bases().iter() {
+            let pos_type = PosType::new(
+                direction.clone(),
+                bcf_position.methylation().unwrap() > 20.0,
+                *cpg_position,
+            );
+            position_counts
+                .entry(pos_type)
+                .and_modify(|existing_meth_pos: &mut HashMap<char, usize>| {
+                    for (base, count) in value {
+                        // println!("Base: {}, Count: {}", base, count);
+                        *existing_meth_pos.entry(*base).or_insert(0) += count;
+                    }
+                })
+                .or_insert_with(HashMap::new);
         }
+        println!("Position: {:?}", bcf_position);
     }
-    println!("Reads to dir: {:?}", position_counts);
     Ok(position_counts)
 }
 
-pub fn write_pos_to_bases(output: Option<PathBuf>, position_counts: BTreeMap<(String, u32, &str), HashMap<char, u32>>) -> Result<()>{
-    let output_file = File::create(output.unwrap()).with_context(|| format!("error opening BCF writer"))?;
-    let mut writer = BufWriter::new(output_file);
+pub fn insert_bases(record: &Record, meth_pos: &mut MethPos, offset: u32) {
+    if let Some(qpos) = record
+        .cigar()
+        .read_pos(*meth_pos.position().pos() + offset, false, false)
+        .unwrap()
+    {
+        let base = unsafe { record.seq().decoded_base_unchecked((qpos) as usize) } as char;
 
-    // Schreiben Sie die Ergebnisse in die Datei
-    writeln!(&mut writer, "#CHROM	#POS	#DIR	#A	#C	#G	#T	#N")?;
-    for ((reference_name, position, direction), counts) in &position_counts {
-        write!(
-            &mut writer,
-            "{}	{}	{}	",
-            reference_name, position, direction
-        )?;
-        write!(&mut writer, "{}	{}	{}	{}	{}", counts.get(&'A').unwrap_or(&0), counts.get(&'C').unwrap_or(&0), counts.get(&'G').unwrap_or(&0), counts.get(&'T').unwrap_or(&0), counts.get(&'N').unwrap_or(&0))?;
-        writeln!(&mut writer)?;
+        let read_direction = if read_reverse_orientation(record) {
+            Direction::Reverse
+        } else {
+            Direction::Forward
+        };
+        // dbg!(&read_direction, &offset, &base);
+        meth_pos
+            .meth_bases_mut()
+            .entry((read_direction, offset))
+            .or_default() // Falls nicht vorhanden, lege eine neue HashMap an
+            .entry(base)
+            .and_modify(|count| *count += 1) // Falls vorhanden, erhöhe um 1
+            .or_insert(1);
+        // dbg!(&meth_pos);
     }
+}
+
+pub fn write_assigned_bases(
+    output: Option<PathBuf>,
+    meth_positions: HashMap<PosType, NumberOfNucleotides>,
+) -> Result<()> {
+    let mut writer: Box<dyn Write> = match output {
+        Some(path) => {
+            let file = std::fs::File::create(path.clone())
+                .with_context(|| format!("error creating file: {:?}", path))?;
+            Box::new(BufWriter::new(file))
+        }
+        None => Box::new(BufWriter::new(std::io::stdout())),
+    };
+    writeln!(writer, "direction,methylation_status,cpg_position,bases")?;
+    for dir in [Direction::Forward, Direction::Reverse].iter() {
+        for meth_type in [true, false].iter() {
+            for cpg_pos in [0, 1] {
+                let bases = meth_positions.get(&PosType::new(dir.clone(), *meth_type, cpg_pos));
+                writeln!(
+                    writer,
+                    "{},{},{},{:?}",
+                    dir.as_str(),
+                    meth_type,
+                    cpg_pos,
+                    bases
+                )?;
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -157,38 +176,79 @@ pub fn write_pos_to_bases(output: Option<PathBuf>, position_counts: BTreeMap<(St
 /// # Returns
 ///
 /// True if read given read is a reverse read, false if it is a forward read
-pub(crate) fn read_reverse_strand(flag: u16) -> bool {
-    let read_paired = 0b1;
-    let read_mapped_porper_pair = 0b01;
-    let read_reverse = 0b10000;
-    let mate_reverse = 0b100000;
-    let first_in_pair = 0b1000000;
-    let second_in_pair = 0b10000000;
-    if (flag & read_paired != 0
-        && flag & read_mapped_porper_pair != 0
-        && flag & read_reverse != 0
-        && flag & first_in_pair != 0)
-        || (flag & read_paired != 0
-            && flag & read_mapped_porper_pair != 0
-            && flag & mate_reverse != 0
-            && flag & second_in_pair != 0)
-        || (flag & read_reverse != 0
-            && (flag & read_paired == 0 || flag & read_mapped_porper_pair == 0))
-    {
-        return true;
+pub(crate) fn read_reverse_orientation(read: &Record) -> bool {
+    let read_paired = read.is_paired();
+    let read_reverse = read.is_reverse();
+    let read_first = read.is_first_in_template();
+    if read_paired {
+        read_reverse && read_first || !read_reverse && !read_first
+    } else {
+        read_reverse
     }
-    false
-    // flag & 0x10 != 0
 }
 
-/// Computes if a given read is valid (Right now we only accept specific flags)
-///
-/// # Returns
-///
-/// bool: True, if read is valid, else false
-fn read_invalid(flag: u16) -> bool {
-    if flag == 0 || flag == 16 || flag == 99 || flag == 83 || flag == 147 || flag == 163 {
-        return false;
-    }
-    true
-}
+// Extracts all the CpG positions in a bcf to a vector
+// Input:
+//     bcf_file_path: Path to the bcf filewith methylation candidates
+// Output:
+//     Result<Vec<(String, u32)>>: Vector mit (Chromosom, Position) der jeweiligen CpG Positionen
+// pub fn extract_bcf_positions(bcf_file_path: PathBuf) -> Result<Vec<MethPos>> {
+//     let mut bcf = Reader::from_path(bcf_file_path)?;
+//     let mut bcf_positions = Vec::new();
+
+//     for record in bcf.records() {
+//         let record = record?;
+//         let chrom =
+//             String::from_utf8_lossy(record.header().rid2name(record.rid().unwrap()).unwrap())
+//                 .into_owned();
+//         let pos = record.pos() as u32 + 1;
+//         bcf_positions.push(MethPos::new(Position::new(chrom, pos, None), None));
+//     }
+//     println!("BCF Positions: {:?}", bcf_positions);
+//     Ok(bcf_positions)
+// }
+
+// // TODO vernuenftige csv schreiben
+// pub fn write_pos_to_bases(
+//     output: Option<PathBuf>,
+//     position_counts: HashMap<Position, HashMap<char, u32>>,
+// ) -> Result<()> {
+//     let output_file =
+//         File::create(output.unwrap()).with_context(|| format!("error opening BCF writer"))?;
+//     let mut writer = BufWriter::new(output_file);
+
+//     // Schreiben Sie die Ergebnisse in die Datei
+//     writeln!(&mut writer, "#CHROM	#POS	#DIR	#A	#C	#G	#T	#N")?;
+//     for (position, counts) in &position_counts {
+//         write!(
+//             &mut writer,
+//             "{}	{}	{}	",
+//             position.chrom(),
+//             position.pos(),
+//             position.direction().as_ref().unwrap()
+//         )?;
+//         write!(
+//             &mut writer,
+//             "{}	{}	{}	{}	{}",
+//             counts.get(&'A').unwrap_or(&0),
+//             counts.get(&'C').unwrap_or(&0),
+//             counts.get(&'G').unwrap_or(&0),
+//             counts.get(&'T').unwrap_or(&0),
+//             counts.get(&'N').unwrap_or(&0)
+//         )?;
+//         writeln!(&mut writer)?;
+//     }
+//     Ok(())
+// }
+
+//  Computes if a given read is valid (Right now we only accept specific flags)
+
+//  # Returns
+
+//  bool: True, if read is valid, else false
+// pub fn read_invalid(flag: u16) -> bool {
+//     if flag == 0 || flag == 16 || flag == 99 || flag == 83 || flag == 147 || flag == 163 {
+//         return false;
+//     }
+//     true
+// }

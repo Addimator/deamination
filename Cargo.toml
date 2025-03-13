@@ -6,9 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-structopt = "0.3"  # Verwenden Sie die entsprechende Version von structopt
+getset = "0.1.0"
+structopt = "0.3"      # Verwenden Sie die entsprechende Version von structopt
 anyhow = "1.0"
-rust-htslib = "0.43.1"
+rust-htslib = "0.49.0"
 regex = "1.5.4"
 
 
@@ -16,3 +17,8 @@ regex = "1.5.4"
 codegen-units = 1
 lto = "fat"
 panic = "abort"
+
+
+[lib]
+name = "deamination"
+path = "src/lib.rs"

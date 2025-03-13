@@ -1,0 +1,148 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "find bases",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=deamination",
+                    "--package=deamination",
+                ],
+                "filter": {
+                    "name": "deamination",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "find-bases",
+                "/home/adrian/Documents/Promotion/varlo_stuff/varlociraptor-methylation-evaluation/resources/Illumina_pe/simulated_data/alignment_focused_downsampled_dedup_renamed.bam",
+                "/home/adrian/Documents/Promotion/varlo_stuff/varlociraptor-methylation-evaluation/resources/Illumina_pe/simulated_data/chromosome_J02459_truth.bed",
+                "test.txt",
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'deamination'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=deamination"
+                ],
+                "filter": {
+                    "name": "deamination",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "assign bases",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=deamination",
+                    "--package=deamination",
+                ],
+                "filter": {
+                    "name": "deamination",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "assign-bases",
+                "/home/adrian/Documents/Promotion/deamination-pipeline/resources/bed_avg.bedGraph",
+                "/home/adrian/Documents/Promotion/deamination-pipeline/resources/example/pos_to_bases.txt",
+                // "/home/adrian/Documents/Promotion/deamination-pipeline/results/example/assigned_bases.txt",
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'deamination'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=deamination"
+                ],
+                "filter": {
+                    "name": "deamination",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'deamination'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=deamination",
+                    "--package=deamination"
+                ],
+                "filter": {
+                    "name": "deamination",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'deamination'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=deamination",
+                    "--package=deamination"
+                ],
+                "filter": {
+                    "name": "deamination",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'find_bases_test'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=find_bases_test",
+                    "--package=deamination"
+                ],
+                "filter": {
+                    "name": "find_bases_test",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
