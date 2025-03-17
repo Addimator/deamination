@@ -36,19 +36,19 @@ impl Direction {
 
 pub type NumberOfNucleotides = HashMap<char, usize>;
 
-#[derive(Debug, Setters, Getters, Clone)]
+#[derive(Debug, Setters, Getters, Clone, Eq, PartialEq)]
 pub struct MethPos {
     #[getset(get = "pub")]
     position: Position,
     #[getset(get = "pub", set = "pub")]
-    methylation: Option<f64>,
+    methylation: i64,
     #[getset(get = "pub", set = "pub")]
     meth_bases: HashMap<(Direction, u32), NumberOfNucleotides>,
 }
 
 impl MethPos {
     // Benutzerdefinierte `new` Methode, um ein Objekt zu erstellen
-    pub fn new(position: Position, methylation: Option<f64>) -> Self {
+    pub fn new(position: Position, methylation: i64) -> Self {
         MethPos {
             position,
             methylation,

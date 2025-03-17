@@ -4,10 +4,10 @@ use anyhow::{Context, Result};
 use rust_htslib::bam::Record;
 use rust_htslib::bam::{self, Read};
 use std::collections::HashMap;
+use std::default;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use std::io::prelude::*;
 
@@ -32,61 +32,37 @@ pub fn process_bedgraph_data(bed_graph_path: PathBuf) -> Result<Vec<MethPos>> {
         let pos = bed_fields[1]
             .parse::<usize>()
             .context("Invalid position value")?;
-
-        let methylation = bed_fields[3].parse().context("Invalid methylation value")?;
-        let position = MethPos::new(Position::new(chrom.clone(), pos as u32), Some(methylation));
+        let methylation: i64 = bed_fields[3]
+            .parse::<f64>() // Erst in f64 umwandeln
+            .context("Invalid methylation value")?
+            .round() as i64;
+        let position = MethPos::new(Position::new(chrom.clone(), pos as u32), methylation);
 
         meth_positions.push(position);
     }
     Ok(meth_positions)
 }
 
-pub fn get_relevant_reads(bcf_positions: &[MethPos]) -> (String, u64, u64) {
-    let chrom = bcf_positions[0].position().chrom().clone(); // Chromosom vom ersten Eintrag
-    let start = (bcf_positions[0].position().pos() - 1).saturating_sub(201) as u64; // Startposition vom ersten Element
-    let end = bcf_positions
-        .last()
-        .ok_or_else(|| anyhow::anyhow!("bcf hat keine Positionen"))
-        .map(|x| x.position().pos() + 1)
-        .unwrap()
-        .saturating_add(200) as u64; // Endposition vom letzten Element
-
-    // let header = bam_reader.tid(); // Kopiere den Header einmal
-    // let tid: u32 = header.tid(chrom.as_bytes()).unwrap();
-    // first pass, extend reference interval
-    // TODO: Chrom oder TID zurueckgeben?
-    (chrom, start, end)
-}
-
-/// Computes the number of different bases on the CpG positions. Different entries for reads on the forward and reverse strand.
-/// Input:
-///     sam_file_path: Path to the alignment
-///     bcf_positions: Vector with all the CpG positions
-/// Output:
-///      Result<BTreeMap<(String, u32, char), HashMap<char, u32>>>: Maps a specific position (chromosome, position, read_direction) to a map of bases to their number on this position
 // TODO: Test ueber unterschiedliche Chromosome hinweg
-// TODO: Hier schon MethPositions verwenden und nicht HashMaps mit Positions und Bases
 pub fn count_bases_in_reads(
     bam_file_path: PathBuf,
-    mut bcf_positions: Vec<MethPos>,
+    mut candidate_pos: Vec<MethPos>,
 ) -> Result<HashMap<PosType, NumberOfNucleotides>> {
     let mut indexed_reader =
         bam::IndexedReader::from_path(bam_file_path).context("Unable to read BAM/CRAM file.")?;
     // let mut bam_reader = bam::RecordBuffer::new(indexed_bam, true);
 
     let mut position_counts = HashMap::new();
-
-    for bcf_position in bcf_positions.iter_mut() {
+    let total_positions = candidate_pos.len();
+    for (index, bcf_position) in candidate_pos.iter_mut().enumerate() {
         let chrom = bcf_position.position().chrom();
         let start = *bcf_position.position().pos() as i64;
         let end = start + 1;
-
         indexed_reader.fetch((
             indexed_reader.header().tid(chrom.as_bytes()).unwrap(),
             start,
             end,
         ))?;
-
         for record in indexed_reader.records() {
             let record = record?;
             insert_bases(&record, bcf_position, 0);
@@ -96,20 +72,21 @@ pub fn count_bases_in_reads(
         for ((direction, cpg_position), value) in bcf_position.meth_bases().iter() {
             let pos_type = PosType::new(
                 direction.clone(),
-                bcf_position.methylation().unwrap() > 20.0,
+                bcf_position.methylation() > &20,
                 *cpg_position,
             );
             position_counts
                 .entry(pos_type)
                 .and_modify(|existing_meth_pos: &mut HashMap<char, usize>| {
                     for (base, count) in value {
-                        // println!("Base: {}, Count: {}", base, count);
                         *existing_meth_pos.entry(*base).or_insert(0) += count;
                     }
                 })
                 .or_insert_with(HashMap::new);
         }
-        println!("Position: {:?}", bcf_position);
+        if (index + 1) % 1000 == 0 || (index + 1) == total_positions {
+            println!("\tProcessed {}/{} positions", index + 1, total_positions);
+        }
     }
     Ok(position_counts)
 }
@@ -127,15 +104,13 @@ pub fn insert_bases(record: &Record, meth_pos: &mut MethPos, offset: u32) {
         } else {
             Direction::Forward
         };
-        // dbg!(&read_direction, &offset, &base);
         meth_pos
             .meth_bases_mut()
             .entry((read_direction, offset))
-            .or_default() // Falls nicht vorhanden, lege eine neue HashMap an
+            .or_default()
             .entry(base)
-            .and_modify(|count| *count += 1) // Falls vorhanden, erhöhe um 1
+            .and_modify(|count| *count += 1)
             .or_insert(1);
-        // dbg!(&meth_pos);
     }
 }
 
@@ -151,18 +126,36 @@ pub fn write_assigned_bases(
         }
         None => Box::new(BufWriter::new(std::io::stdout())),
     };
-    writeln!(writer, "direction,methylation_status,cpg_position,bases")?;
     for dir in [Direction::Forward, Direction::Reverse].iter() {
         for meth_type in [true, false].iter() {
             for cpg_pos in [0, 1] {
-                let bases = meth_positions.get(&PosType::new(dir.clone(), *meth_type, cpg_pos));
+                let default_bases = HashMap::new();
+                let bases = meth_positions
+                    .get(&PosType::new(dir.clone(), *meth_type, cpg_pos))
+                    .unwrap_or(&default_bases);
+                let counts: Vec<usize> = ['A', 'C', 'G', 'T', 'N']
+                    .iter()
+                    .map(|b| *bases.get(b).unwrap_or(&0))
+                    .collect();
+
+                let orig_base = match (dir.as_str(), cpg_pos) {
+                    ("forward", 0) => "C",
+                    ("forward", 1) => "G",
+                    ("reverse", 0) => "G",
+                    ("reverse", 1) => "C",
+                    _ => panic!("Unbekannte Kombination von dir und cpg_pos"), // Optional, um Fehler zu behandeln
+                };
                 writeln!(
                     writer,
-                    "{},{},{},{:?}",
-                    dir.as_str(),
+                    "{},{},{},{}",
                     meth_type,
-                    cpg_pos,
-                    bases
+                    dir.as_str(),
+                    orig_base,
+                    counts
+                        .iter()
+                        .map(|c| c.to_string())
+                        .collect::<Vec<_>>()
+                        .join(",")
                 )?;
             }
         }
@@ -192,7 +185,7 @@ pub(crate) fn read_reverse_orientation(read: &Record) -> bool {
 //     bcf_file_path: Path to the bcf filewith methylation candidates
 // Output:
 //     Result<Vec<(String, u32)>>: Vector mit (Chromosom, Position) der jeweiligen CpG Positionen
-// pub fn extract_bcf_positions(bcf_file_path: PathBuf) -> Result<Vec<MethPos>> {
+// pub fn extract_candidate_pos(bcf_file_path: PathBuf) -> Result<Vec<MethPos>> {
 //     let mut bcf = Reader::from_path(bcf_file_path)?;
 //     let mut bcf_positions = Vec::new();
 

@@ -120,17 +120,15 @@ pub fn main() -> Result<()> {
         Deamination::BaseFinder {
             sam_file_path,
             bed_graph_path,
-            // bcf_file_path,
             output,
         } => {
-            // let bcf_positions = extract_bcf_positions(bcf_file_path)?;
-            // println!("Debug 1");
+            println!("Step(1/3): Finding positions in bedGraph file");
             let meth_positions = process_bedgraph_data(bed_graph_path)?;
-            // println!("Debug 2");
+            println!("Step(2/3): Finding nucleotides at positions under interest");
             let position_counts = count_bases_in_reads(sam_file_path, meth_positions)?;
-            // dbg!(&position_counts);
+            println!("Step(3/3): Writing ouput to file");
+
             write_assigned_bases(output, position_counts)?;
-            // write_pos_to_bases(output, position_counts)?;
         } // Deamination::BaseAssigner {
           //     bases_file_path,
           //     output,
