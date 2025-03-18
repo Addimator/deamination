@@ -1,10 +1,7 @@
 use anyhow::{Context, Ok, Result};
 use deamination::utils::{Direction, MethPos, NumberOfNucleotides, PosType, Position};
-use std::collections::{BTreeMap, HashMap};
-use std::fs::File;
-use std::hash::Hash;
-use std::io::{BufReader, Read};
-use std::{fs, path::Path, path::PathBuf};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 fn basedir(test: &str) -> String {
     format!("tests/resources/{}", test)
@@ -22,7 +19,7 @@ fn extract_bed_positions(
         "{}/{candidate_file}.bed",
         basedir
     )))
-    .with_context(|| format!("error computing candidate positions"))?;
+    .with_context(|| "error computing candidate positions")?;
     assert_eq!(bcf_positions, true_candidates);
     Ok(())
 }
@@ -82,7 +79,7 @@ fn count_bases_in_reads(
         PathBuf::from(format!("{}/{}.bam", basedir, alignment_file)),
         candidates,
     )
-    .with_context(|| format!("error computing the position counts"))?;
+    .with_context(|| "error computing the position counts")?;
     assert_eq!(position_counts, true_position_counts);
     Ok(())
 }

@@ -4,7 +4,6 @@ use anyhow::{Context, Result};
 use rust_htslib::bam::Record;
 use rust_htslib::bam::{self, Read};
 use std::collections::HashMap;
-use std::default;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::PathBuf;
@@ -58,11 +57,11 @@ pub fn count_bases_in_reads(
         let chrom = bcf_position.position().chrom();
         let start = *bcf_position.position().pos() as i64;
         let end = start + 1;
-        indexed_reader.fetch((
-            indexed_reader.header().tid(chrom.as_bytes()).unwrap(),
-            start,
-            end,
-        ))?;
+        let tid = indexed_reader
+            .header()
+            .tid(chrom.as_bytes())
+            .with_context(|| format!("Chromosome {} not found in BAM file header", chrom))?;
+        indexed_reader.fetch((tid, start, end))?;
         for record in indexed_reader.records() {
             let record = record?;
             insert_bases(&record, bcf_position, 0);
@@ -141,8 +140,8 @@ pub fn write_assigned_bases(
                 let orig_base = match (dir.as_str(), cpg_pos) {
                     ("forward", 0) => "C",
                     ("forward", 1) => "G",
-                    ("reverse", 0) => "G",
-                    ("reverse", 1) => "C",
+                    ("reverse", 0) => "C",
+                    ("reverse", 1) => "G",
                     _ => panic!("Unbekannte Kombination von dir und cpg_pos"), // Optional, um Fehler zu behandeln
                 };
                 writeln!(
