@@ -1,0 +1,13 @@
+@HD	VN:1.6	SO:coordinate
+@SQ	SN:20	LN:48502
+@SQ	SN:21	LN:48502
+@RG	ID:genome_se_f150r150_dir	SM:genome_se_f150r150_dir
+@PG	ID:bwa-meth	PN:bwa-meth	VN:0.2.5	CL:"/home/adrian/Documents/Promotion/varlociraptor-methylation-evaluation/.snakemake/conda/8c5e24c8ba1a63cd1b01d83bf743c129_/bin/bwameth.py --threads 10 --reference resources/example_single/genome.fasta resources/example_single/genome_se_f150r150_dir.fastq"
+@PG	ID:samtools	PN:samtools	PP:bwa-meth	VN:1.17	CL:samtools view -o /home/adrian/Documents/Promotion/deamination_stuff/deamination/tests/resources/find_bases/alignment_mid_c.bam /home/adrian/Documents/Promotion/deamination_stuff/deamination/tests/resources/find_bases/alignment_mid_c.sam
+@PG	ID:samtools.1	PN:samtools	PP:samtools	VN:1.17	CL:samtools view -h -o /home/adrian/Documents/Promotion/deamination_stuff/deamination/tests/resources/test_complete/alignment_mid_c.sam /home/adrian/Documents/Promotion/deamination_stuff/deamination/tests/resources/test_complete/alignment_mid_c.bam
+SRR13050995.94833862	0	20	1	60	14M	*	0	0	GGATGGGCGGATAG	HHGGHHHHHGGGGH	NM:i:0	MD:Z:150	AS:i:150	XS:i:0	RG:Z:genome_se_f150r150_dir	YC:Z:CT	YD:Z:f
+SRR13050995.90710007	16	20	1	60	14M	*	0	0	GGACGGCCTGATAG	799999:88:;:::	NM:i:0	MD:Z:150	AS:i:150	XS:i:0	RG:Z:genome_se_f150r150_dir	YC:Z:CT	YD:Z:r
+SRR13050995.86993885	0	20	6	60	14M	*	0	0	GGCGAGTGGGATAG	HHGGHHHHHGGGGH	NM:i:0	MD:Z:150	AS:i:150	XS:i:0	RG:Z:genome_se_f150r150_dir	YC:Z:CT	YD:Z:f
+SRR13050995.31995336	16	21	5	60	14M	*	0	0	GGATCACAGGATAG	799999:88:;:::	NM:i:0	MD:Z:150	AS:i:150	XS:i:0	RG:Z:genome_se_f150r150_dir	YC:Z:CT	YD:Z:r
+SRR13050995.31995336	16	21	5	60	14M	*	0	0	GGATCGCAGGATAG	799999:88:;:::	NM:i:0	MD:Z:150	AS:i:150	XS:i:0	RG:Z:genome_se_f150r150_dir	YC:Z:CT	YD:Z:r
+SRR13050995.31995336	0	21	5	60	14M	*	0	0	GGATTGCAGGATAG	799999:88:;:::	NM:i:0	MD:Z:150	AS:i:150	XS:i:0	RG:Z:genome_se_f150r150_dir	YC:Z:CT	YD:Z:r

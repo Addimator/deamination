@@ -32,6 +32,8 @@ impl Direction {
     }
 }
 
+// The chars are the bases and the usize is the number of bases
+// The bases are A, C, G, T and N
 pub type NumberOfNucleotides = HashMap<char, usize>;
 
 #[derive(Debug, Setters, Getters, Clone, Eq, PartialEq)]
@@ -41,6 +43,7 @@ pub struct MethPos {
     #[getset(get = "pub", set = "pub")]
     methylation: i64,
     #[getset(get = "pub", set = "pub")]
+    // The u32 ist the position in the CpG site (either 0 or 1)
     meth_bases: HashMap<(Direction, u32), NumberOfNucleotides>,
 }
 

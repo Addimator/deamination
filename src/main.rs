@@ -6,6 +6,14 @@ use structopt::StructOpt;
 mod find_bases;
 mod utils;
 
+// How does this work?
+// 1. Read the bedGraph file (bedgraph file because we use the average bedgraph in order  to find methylation info of each position) and extract the positions of interest.
+//     Create for each position a MethPos object with the position and methylation level.
+// 2. Read the BAM file and extract the bases at the positions of interest. Insert the number of bases in the meth_bases field of the MethPos object.
+// 3. Write the bases to a file or print them to stdout.
+// 4. The output file will contain the bases at the positions of interest in the format:
+//    <chromosome> <position> <base1> <base2> ... <baseN>
+
 #[derive(Debug, StructOpt)]
 struct FindBasesArgs {
     #[structopt(
