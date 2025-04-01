@@ -1,8 +1,10 @@
 use anyhow::{Context, Ok, Result};
-use deamination::utils::{Direction, MethPos, PosType, Position};
+use deamination::utils::Position;
+use deamination::utils::{Direction, MethPos, PosType};
 use std::collections::HashMap;
-
-use std::{fs, path::Path, path::PathBuf};
+use std::fs::File;
+use std::io::{BufReader, Read};
+use std::path::PathBuf;
 
 fn basedir(test: &str) -> String {
     format!("tests/resources/{}", test)
@@ -98,6 +100,39 @@ fn count_bases_in_reads(
     )
     .with_context(|| "error computing the position counts")?;
     assert_eq!(base_counter, true_position_counts);
+    Ok(())
+}
+
+fn file_to_string(file: File) -> String {
+    let mut buf_reader = BufReader::new(file);
+    let mut content = String::new();
+    buf_reader.read_to_string(&mut content).unwrap();
+    content
+}
+
+fn write_pos_to_bases(
+    test: &str,
+    position_counts: HashMap<PosType, HashMap<char, usize>>,
+) -> Result<()> {
+    let basedir = basedir(test);
+
+    // Read true output file and get its content
+    let file = File::open(PathBuf::from(
+        (format!("{}/true_output.csv", basedir)).clone(),
+    ))?;
+    let true_output_content = file_to_string(file);
+
+    // Compute output of method
+    let output_file = format!("{}/output_program.csv", basedir);
+    deamination::find_bases::write_assigned_bases(
+        Some(PathBuf::from(output_file.clone())),
+        position_counts,
+    )
+    .with_context(|| "error computing the position counts")?;
+    let file = File::open(PathBuf::from(output_file.clone()))?;
+    let output_content = file_to_string(file);
+
+    assert_eq!(output_content, true_output_content);
     Ok(())
 }
 
@@ -202,6 +237,13 @@ fn test_complete_workflow() -> Result<()> {
 
     let true_bases = get_true_counts("complete");
 
-    count_bases_in_reads("test_complete", "alignment", true_candidates, true_bases)?;
+    count_bases_in_reads(
+        "test_complete",
+        "alignment",
+        true_candidates,
+        true_bases.clone(),
+    )?;
+
+    write_pos_to_bases("test_complete", true_bases)?;
     Ok(())
 }
